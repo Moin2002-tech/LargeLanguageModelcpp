@@ -1,0 +1,32 @@
+# Build directories
+build/
+cmake-build-debug/
+cmake-build-release/
+cmake-build-*/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# External dependencies
+external/libtorch/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+Makefile
+*.cmake
+
+# Object / library files
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+
+# Binary
+LargeLanguageModelcpp
