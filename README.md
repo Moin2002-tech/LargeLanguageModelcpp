@@ -134,24 +134,6 @@ add_subdirectory(external/tiktoken)
 target_link_libraries(LargeLanguageModelcpp PRIVATE tiktoken)
 ```
 
-## How the Attention Mechanism Works
-
-The implementation in `src/attentionMechanism.cpp` mirrors the Python code from Raschka's "Build a Large Language Model From Scratch" but in C++ with LibTorch:
-
-```cpp
-// Python: W_query = torch.nn.Parameter(torch.rand(d_in, d_out), requires_grad=False)
-// C++:
-W_query = register_parameter("W_query", torch::rand({d_in, d_out}), false);
-
-// Python: query_2 = x_2 @ W_query   (x_2 = input[1])
-// C++:
-auto query_2 = x_2.matmul(W_query);
-
-// Python: attn_scores[i, j] = torch.dot(x_i, x_j)
-// C++:
-attentionScore2[i][j] = torch::dot(input[i], input[j]).item<float>();
-```
-
 ### Self-Attention Forward Pass
 
 1. **Linear projections:** `Q = X @ W_q`, `K = X @ W_k`, `V = X @ W_v`
