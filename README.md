@@ -1,14 +1,14 @@
 # LargeLanguageModelcpp
 
-A C++ implementation of a GPT-like large language model from scratch, built with **LibTorch** (PyTorch C++ API). This project is a learning exercise to understand transformer architecture, attention mechanisms, tokenization, and data pipelines — all in C++.
+A C++ implementation of a GPT-like large language model from scratch, built with **LibTorch** (PyTorch C++ API). This project is a learning exercise to understand transformer architecture, attention mechanisms, tokenization, and data pipelines all in C++.
 
 ## Features
 
-- **Attention Mechanism** — Self-attention with learned Q, K, V weight matrices (scaled dot-product attention)
-- **GPT Dataset V1** — Custom dataset loader for text-based training data (`the-verdict.txt`)
-- **Tokenizer** — OpenAI's **tiktoken** C++ port for BPE (Byte-Pair Encoding) tokenization
-- **Embeddings** — Token + position embedding layer
-- **doctest** — Unit tests for all components
+- **Attention Mechanism** : Self-attention with learned Q, K, V weight matrices (scaled dot-product attention)
+- **GPT Dataset V1** : Custom dataset loader for text-based training data (`the-verdict.txt`)
+- **Tokenizer** : OpenAI's **tiktoken** C++ port for BPE (Byte-Pair Encoding) tokenization
+- **Embeddings** : Token + position embedding layer
+- **doctest** : Unit tests for all components
 
 
 ## Prerequisites
