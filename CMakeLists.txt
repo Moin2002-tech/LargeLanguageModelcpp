@@ -33,13 +33,16 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         external/third_party/doctest.hpp
         external/third_party/doctest.hpp
         external/third_party/doctest.cpp
-        src/attentionMechanism.cpp)
+        src/attentionMechanism.cpp
+        include/AttensionMechanism/AttensionMechanism.hpp
+        src/AttensionMechanism/AttensionMechanism.cpp)
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/include"
         "${CMAKE_SOURCE_DIR}/src"
         "${CMAKE_SOURCE_DIR}/external/libtorch/include"
         "${CMAKE_SOURCE_DIR}/external/libtorch/include/torch/csrc/api/include"
+        "${CMAKE_SOURCE_DIR}/external/third_party"
 
 
 )
