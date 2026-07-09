@@ -1,0 +1,18 @@
+//
+// Created by moinshaikh on 7/9/26.
+//
+
+#ifndef LARGELANGUAGEMODELCPP_UTIL_HPP
+#define LARGELANGUAGEMODELCPP_UTIL_HPP
+
+struct config {
+    int vocab_size = 50257;    // Vocabulary size
+    int context_length = 1024; // Context length
+     int emb_dim = 768 ;      // Embedding dimension
+     int n_heads = 12  ;      //Number of attention heads
+     int n_layer =  12 ;      // Number of layers
+     float drop_rate =0.1;      // # Dropout rate
+     bool qkv_bias = false;     //  # Query-Key-Value bias
+};//
+
+#endif //LARGELANGUAGEMODELCPP_UTIL_HPP

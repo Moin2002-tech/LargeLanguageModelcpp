@@ -35,7 +35,19 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         external/third_party/doctest.cpp
         src/attentionMechanism.cpp
         include/AttensionMechanism/AttensionMechanism.hpp
-        src/AttensionMechanism/AttensionMechanism.cpp)
+        src/AttensionMechanism/AttensionMechanism.cpp
+        include/AttensionMechanism/CasualAttentionMechanism.hpp
+        src/AttensionMechanism/CasualAttention.cpp
+        include/AttensionMechanism/MultiHeadAttenion.hpp
+        src/AttensionMechanism/MultiHeadAttension.cpp
+        include/GPT2LargeLanguageModel/Gpt2Model.hpp
+        include/GPT2LargeLanguageModel/util.hpp
+        src/GPT2LargeLanguageModel/Gpt2Model.cpp
+        include/GPT2LargeLanguageModel/TranformerBlock.hpp
+        src/GPT2LargeLanguageModel/TranformerBlock.cpp
+        include/Gpt2Untrained/dataPrepration.hpp
+        src/Gpt2Untrained/dataPrepration.cpp
+        include/Gpt2Untrained/Tests.cpp)
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/include"

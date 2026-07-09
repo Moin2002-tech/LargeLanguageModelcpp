@@ -69,8 +69,8 @@ torch::Tensor SelfAttentionMechanismV3Impl::forward(torch::Tensor x) {
 
 TEST_CASE("SelfAttentionV3") {
     torch::Tensor input = torch::tensor({{0.43, 0.15, 0.89},//your
-                                          {0.55, 0.87, 0.66}, //journey
-                                          {0.57, 0.85, 0.64}, //start
+                                          {0.55, 0.87, 0.66},//journey
+                                          {0.57, 0.85, 0.64},//start
                                           {0.22, 0.58, 0.33},//with
                                           {0.77, 0.25, 0.10},//one
                                           {0.05, 0.80, 0.55}//step
