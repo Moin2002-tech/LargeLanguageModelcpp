@@ -10,6 +10,7 @@
 #include<cassert>
 
 #include "CasualAttentionMechanism.hpp"
+#include<GPT2LargeLanguageModel/util.hpp>
 
 
 
@@ -26,6 +27,7 @@ private:
     torch::nn::Linear out_proj{nullptr};
     torch::nn::Dropout dropout_layer{nullptr};
     torch::Tensor mask;
+    config cfg;
 public:
     MultiHeadAttentionMechanismImpl(uint d_in,
         uint d_out,

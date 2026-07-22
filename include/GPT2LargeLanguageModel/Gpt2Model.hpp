@@ -21,6 +21,8 @@ public:
     Gpt2Impl(config& cfg);
     torch::Tensor forward(torch::Tensor x);
 
+    // Accessor for the output head (needed for parameter calculations with weight tying)
+    torch::nn::Linear getOutHead() const { return outHead; }
 };TORCH_MODULE(Gpt2);
 
 

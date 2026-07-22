@@ -47,7 +47,9 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         src/GPT2LargeLanguageModel/TranformerBlock.cpp
         include/Gpt2Untrained/dataPrepration.hpp
         src/Gpt2Untrained/dataPrepration.cpp
-        include/Gpt2Untrained/Tests.cpp)
+        include/Gpt2Untrained/Tests.cpp
+        include/Gpt2Untrained/Tests/multiParameterModel.cpp
+        include/Gpt2Untrained/Tests/multiDropout.cpp)
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/include"

@@ -8,7 +8,7 @@
 #include<stdexcept>
 #include<limits>
 #include<cmath>
-
+#include<GPT2LargeLanguageModel/util.hpp>
 
 MultiHeadAttentionMechanismImpl::MultiHeadAttentionMechanismImpl(uint d_in, uint d_out,
         int64_t context_length,

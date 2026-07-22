@@ -63,7 +63,7 @@ TEST_CASE("untrainedModelTests") {
     std::cout << "Generated sequence shape: " << generated.sizes() << std::endl;
     std::cout << "Generated tokens: " << generated << std::endl;
 
-    // Decode back to text (equivalent of Python's tokenizer.decode(out.squeeze(0).tolist()))
+    // Decode back to text
     std::string decodedText = data.decode(generated);
     std::cout << "Decoded text: " << decodedText << std::endl;
 
