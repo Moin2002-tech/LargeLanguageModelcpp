@@ -6,9 +6,9 @@
 #include<torch/nn.h>
 
 #include<GPT2LargeLanguageModel/util.hpp>
-#include<GPT2LargeLanguageModel/TranformerBlock.hpp>
+#include<GPT2LargeLanguageModel/TransformerBlock.hpp>
 #include<GPT2LargeLanguageModel/Gpt2Model.hpp>
-#include<AttensionMechanism/MultiHeadAttenion.hpp>
+#include<AttentionMechanism/MultiHeadAttention.hpp>
 #include<iostream>
 
 #include<doctest.hpp>

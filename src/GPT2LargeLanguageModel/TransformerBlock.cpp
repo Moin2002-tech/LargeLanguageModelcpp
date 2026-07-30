@@ -1,7 +1,7 @@
 //
 // Created by moinshaikh on 7/9/26.
 //
-#include<GPT2LargeLanguageModel/TranformerBlock.hpp>
+#include<GPT2LargeLanguageModel/TransformerBlock.hpp>
 
 
 TransformerBlockImpl::TransformerBlockImpl(const config &cfg) : cfg(cfg)

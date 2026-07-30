@@ -3,7 +3,7 @@
 //
 
 
-#include<AttensionMechanism/MultiHeadAttenion.hpp>
+#include<AttentionMechanism/MultiHeadAttention.hpp>
 #include<doctest.hpp>
 #include<stdexcept>
 #include<limits>

@@ -2,11 +2,11 @@
 // Created by moinshaikh on 7/9/26.
 //
 
-#ifndef LARGELANGUAGEMODELCPP_TRANFORMERBLOCKIMPL_HPP
-#define LARGELANGUAGEMODELCPP_TRANFORMERBLOCKIMPL_HPP
+#ifndef LARGELANGUAGEMODELCPP_TRANSFORMERBLOCKIMPL_HPP
+#define LARGELANGUAGEMODELCPP_TRANSFORMERBLOCKIMPL_HPP
 
 #include <torch/torch.h>
-#include<AttensionMechanism/MultiHeadAttenion.hpp>
+#include<AttentionMechanism/MultiHeadAttention.hpp>
 #include"util.hpp"
 
 class FeedForwardImpl : public torch::nn::Module
@@ -42,4 +42,4 @@ public:
     torch::Tensor forward(torch::Tensor x);
 };TORCH_MODULE(TransformerBlock);
 
-#endif //LARGELANGUAGEMODELCPP_TRANFORMERBLOCKIMPL_HPP
+#endif //LARGELANGUAGEMODELCPP_TRANSFORMERBLOCKIMPL_HPP

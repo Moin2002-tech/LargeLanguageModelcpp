@@ -8,8 +8,8 @@ ward module and those that are contained in the multi-head attention module.*/
 
 
 #include<torch/torch.h>
-#include<AttensionMechanism/MultiHeadAttenion.hpp>
-#include<GPT2LargeLanguageModel/TranformerBlock.hpp>
+#include<AttentionMechanism/MultiHeadAttention.hpp>
+#include<GPT2LargeLanguageModel/TransformerBlock.hpp>
 #include<GPT2LargeLanguageModel/Gpt2Model.hpp>
 #include<iostream>
 #include<iomanip>
@@ -112,4 +112,3 @@ TEST_CASE("multiParametersModel")
         calculate_size(model, name);
     }
 }
-

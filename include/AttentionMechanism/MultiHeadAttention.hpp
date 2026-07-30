@@ -2,14 +2,14 @@
 // Created by moinshaikh on 7/8/26.
 //
 #pragma once
-#ifndef LARGELANGUAGEMODELCPP_MULTIHEADATTENION_HPP
-#define LARGELANGUAGEMODELCPP_MULTIHEADATTENION_HPP
+#ifndef LARGELANGUAGEMODELCPP_MULTIHEADATTENTION_HPP
+#define LARGELANGUAGEMODELCPP_MULTIHEADATTENTION_HPP
 
 #include<torch/torch.h>
 #include<torch/nn.h>
 #include<cassert>
 
-#include "CasualAttentionMechanism.hpp"
+#include "CausalAttentionMechanism.hpp"
 #include<GPT2LargeLanguageModel/util.hpp>
 
 
@@ -38,4 +38,4 @@ public:
     torch::Tensor forward(torch::Tensor x);
 };TORCH_MODULE(MultiHeadAttentionMechanism);
 
-#endif //LARGELANGUAGEMODELCPP_MULTIHEADATTENION_HPP
+#endif //LARGELANGUAGEMODELCPP_MULTIHEADATTENTION_HPP

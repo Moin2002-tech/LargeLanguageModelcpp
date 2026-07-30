@@ -1,4 +1,3 @@
-
 cmake_minimum_required(VERSION 3.20)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -34,19 +33,19 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         external/third_party/doctest.hpp
         external/third_party/doctest.cpp
         src/attentionMechanism.cpp
-        include/AttensionMechanism/AttensionMechanism.hpp
-        src/AttensionMechanism/AttensionMechanism.cpp
-        include/AttensionMechanism/CasualAttentionMechanism.hpp
-        src/AttensionMechanism/CasualAttention.cpp
-        include/AttensionMechanism/MultiHeadAttenion.hpp
-        src/AttensionMechanism/MultiHeadAttension.cpp
+        include/AttentionMechanism/AttentionMechanism.hpp
+        src/AttentionMechanism/AttentionMechanism.cpp
+        include/AttentionMechanism/CausalAttentionMechanism.hpp
+        src/AttentionMechanism/CausalAttention.cpp
+        include/AttentionMechanism/MultiHeadAttention.hpp
+        src/AttentionMechanism/MultiHeadAttention.cpp
         include/GPT2LargeLanguageModel/Gpt2Model.hpp
         include/GPT2LargeLanguageModel/util.hpp
         src/GPT2LargeLanguageModel/Gpt2Model.cpp
-        include/GPT2LargeLanguageModel/TranformerBlock.hpp
-        src/GPT2LargeLanguageModel/TranformerBlock.cpp
-        include/Gpt2Untrained/dataPrepration.hpp
-        src/Gpt2Untrained/dataPrepration.cpp
+        include/GPT2LargeLanguageModel/TransformerBlock.hpp
+        src/GPT2LargeLanguageModel/TransformerBlock.cpp
+        include/Gpt2Untrained/dataPreparation.hpp
+        src/Gpt2Untrained/dataPreparation.cpp
         include/Gpt2Untrained/Tests.cpp
         include/Gpt2Untrained/Tests/multiParameterModel.cpp
         include/Gpt2Untrained/Tests/multiDropout.cpp)

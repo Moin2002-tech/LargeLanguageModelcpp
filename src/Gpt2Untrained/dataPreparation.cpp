@@ -2,7 +2,7 @@
 // Created by moinshaikh on 7/10/26.
 //
 
-#include <Gpt2Untrained/dataPrepration.hpp>
+#include <Gpt2Untrained/dataPreparation.hpp>
 
 PreparedData::PreparedData(std::string_view modelPath) {
     // Load the BPE ranks from the .tiktoken file

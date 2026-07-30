@@ -2,7 +2,7 @@
 // Created by moinshaikh on 7/6/26.
 //
 
-#include <AttensionMechanism/AttensionMechanism.hpp>
+#include <AttentionMechanism/AttentionMechanism.hpp>
 #include <torch/torch.h>
 #include <cmath>
 #include<doctest.hpp>

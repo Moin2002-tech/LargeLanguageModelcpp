@@ -2,12 +2,12 @@
 // Created by moinshaikh on 7/8/26.
 //
 
-#include<AttensionMechanism/CasualAttentionMechanism.hpp>
+#include<AttentionMechanism/CausalAttentionMechanism.hpp>
 #include<limits>
 #include<cmath>
 #include<doctest.hpp>
 
-CasualAttentionMechanismImpl::CasualAttentionMechanismImpl(uint d_in,
+CausalAttentionMechanismImpl::CausalAttentionMechanismImpl(uint d_in,
     uint d_out,
     int64_t context_length,
     double dropout,
@@ -26,7 +26,7 @@ qkv_bias(qkv_bias)
         torch::triu(torch::ones({context_length, context_length}), 1));
 }
 
-torch::Tensor CasualAttentionMechanismImpl::forward(torch::Tensor x) {
+torch::Tensor CausalAttentionMechanismImpl::forward(torch::Tensor x) {
     // x shape: (b, num_tokens, d_in)
     auto num_tokens = x.size(1);
 
@@ -55,7 +55,7 @@ torch::Tensor CasualAttentionMechanismImpl::forward(torch::Tensor x) {
     return context_vec;
 }
 
-TEST_CASE("CasualAttentionMechanism") {
+TEST_CASE("CausalAttentionMechanism") {
     torch::Tensor input = torch::tensor({{0.43, 0.15, 0.89},//your
                                       {0.55, 0.87, 0.66}, //journey
                                       {0.57, 0.85, 0.64}, //start
@@ -68,7 +68,7 @@ TEST_CASE("CasualAttentionMechanism") {
     auto context_length =  batch_size.size(1);
     double dropout = 0.0;
     bool qkv_bias = false;
-    CasualAttentionMechanism model(input.size(1),2,context_length,dropout,qkv_bias);
+    CausalAttentionMechanism model(input.size(1),2,context_length,dropout,qkv_bias);
     auto context_vec = model->forward(batch_size);
 
     std::cout << context_vec << std::endl;
