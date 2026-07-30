@@ -30,7 +30,8 @@ struct ConfigV2 {
 };
 
 
-class TransformerBlockV2Impl : public torch::nn::Module {
+class TransformerBlockV2Impl : public torch::nn::Module
+{
 private:
     MultiHeadAttentionMechanism att{nullptr};
     FeedForward ff{nullptr};
@@ -87,7 +88,8 @@ public:
 TORCH_MODULE(TransformerBlockV2);
 
 
-class GPTModelV2Impl : public torch::nn::Module {
+class GPTModelV2Impl : public torch::nn::Module
+{
 private:
     ConfigV2 cfg;
     torch::nn::Embedding tok_embed{nullptr}, pos_embed{nullptr};

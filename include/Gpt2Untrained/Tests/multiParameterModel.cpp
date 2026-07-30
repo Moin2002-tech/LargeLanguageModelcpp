@@ -66,7 +66,8 @@ int64_t count_params(const torch::nn::Module& model, bool exclude_out_head = fal
 void calculate_size(const Gpt2& model, const std::string& label)
 {
     int64_t total_params = 0;
-    for (const auto& p : model->parameters()) {
+    for (const auto& p : model->parameters())
+    {
         total_params += p.numel();
     }
     std::cout << label << ": Total number of parameters: " << total_params << std::endl;
@@ -74,7 +75,8 @@ void calculate_size(const Gpt2& model, const std::string& label)
     // Exclude output head parameters for weight tying
     auto out_head_params = model->getOutHead()->parameters();
     int64_t out_head_count = 0;
-    for (const auto& p : out_head_params) {
+    for (const auto& p : out_head_params)
+    {
         out_head_count += p.numel();
     }
     int64_t total_params_gpt2 = total_params - out_head_count;
@@ -95,14 +97,16 @@ TEST_CASE("multiParametersModel")
     std::cout << "\n========== GPT-2 Multi-Size Parameter Counts ==========\n" << std::endl;
 
     // Test each GPT-2 variant
-    std::vector<std::string> model_names = {
+    std::vector<std::string> model_names =
+    {
         "gpt2-small",
         "gpt2-medium",
         "gpt2-large",
         "gpt2-xl"
     };
 
-    for (const auto& name : model_names) {
+    for (const auto& name : model_names)
+    {
         config cfg = get_gpt2_config(name);
 
         // Create model with this config

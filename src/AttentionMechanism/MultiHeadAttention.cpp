@@ -26,11 +26,11 @@ MultiHeadAttentionMechanismImpl::MultiHeadAttentionMechanismImpl(uint d_in, uint
         {
            throw std::invalid_argument("d_out must be divisible by numHeads");
         }
-        W_query = torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias));
-        W_value =  torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias));
-        W_keys =  torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias));
-        out_proj = torch::nn::Linear(torch::nn::LinearOptions(d_out, d_out));
-        dropout_layer =  torch::nn::Dropout(dropout);
+        W_query = register_module("W_query", torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias)));
+        W_value =  register_module("W_value", torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias)));
+        W_keys =  register_module("W_keys", torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias)));
+        out_proj = register_module("out_proj", torch::nn::Linear(torch::nn::LinearOptions(d_out, d_out)));
+        dropout_layer =  register_module("dropout", torch::nn::Dropout(dropout));
         mask = register_buffer("mask",torch::triu(torch::ones({context_length,context_length}),1));
 }
 

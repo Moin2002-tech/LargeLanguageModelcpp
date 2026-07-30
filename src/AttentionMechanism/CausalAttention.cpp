@@ -17,10 +17,10 @@ d_out(d_out),
 context_length(context_length),
 qkv_bias(qkv_bias)
 {
-    W_key = torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias));
-    W_query = torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias));
-    W_value = torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias));
-    dropout_layer = torch::nn::Dropout(dropout);
+    W_key   = register_module("W_key",   torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias)));
+    W_query = register_module("W_query", torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias)));
+    W_value = register_module("W_value", torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias)));
+    dropout_layer = register_module("dropout", torch::nn::Dropout(dropout));
 
     mask = register_buffer("mask",
         torch::triu(torch::ones({context_length, context_length}), 1));

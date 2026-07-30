@@ -48,7 +48,8 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         src/Gpt2Untrained/dataPreparation.cpp
         include/Gpt2Untrained/Tests.cpp
         include/Gpt2Untrained/Tests/multiParameterModel.cpp
-        include/Gpt2Untrained/Tests/multiDropout.cpp)
+        include/Gpt2Untrained/Tests/multiDropout.cpp
+        include/Gpt2Untrained/Tests/FlopsAnalysis.cpp)
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/include"
