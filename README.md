@@ -1,14 +1,91 @@
 # LargeLanguageModelcpp
 
-A C++ implementation of a GPT-like large language model from scratch, built with **LibTorch** (PyTorch C++ API). This project is a learning exercise to understand transformer architecture, attention mechanisms, tokenization, and data pipelines all in C++.
+A C++ implementation of a GPT-like large language model from scratch, built with **LibTorch** (PyTorch C++ API). This project is a learning exercise to understand transformer architecture, attention mechanisms, tokenization, KV caching, and data pipelines all in C++.
 
 ## Features
 
 - **Attention Mechanism** : Self-attention with learned Q, K, V weight matrices (scaled dot-product attention)
+- **Multi-Head Causal Attention** : Multi-head self-attention with causal masking (GPT-2 style)
+- **KV Cache** : Key-value caching for fast iterative text generation (`MultiHeadAttentionV2`, `GptModelV2`)
+- **Transformer Blocks** : Full GPT-2 style block (LayerNorm → Attention → shortcut, LayerNorm → FeedForward → shortcut)
+- **GELU Activation** : GPT-2 style GELU activation in the feed-forward network
+- **Text Generation** : Greedy text generation with and without KV cache (`generate_text_simple` / `generateTextSimpleCached`)
 - **GPT Dataset V1** : Custom dataset loader for text-based training data (`the-verdict.txt`)
 - **Tokenizer** : OpenAI's **tiktoken** C++ port for BPE (Byte-Pair Encoding) tokenization
 - **Embeddings** : Token + position embedding layer
 - **doctest** : Unit tests for all components
+
+## Architecture
+
+The model mirrors the GPT-2 architecture (configurable via `config` struct, default = GPT-2 124M):
+
+```
+Input Tokens [batch, seq_len]
+    │
+    ▼
+┌─────────────────────────────────┐
+│  Token Embedding + Position     │
+│  Embedding + Dropout            │
+└─────────────────────────────────┘
+    │
+    ▼  (repeated n_layers times)
+┌─────────────────────────────────┐
+│  Transformer Block              │
+│  ┌───────────────────────────┐  │
+│  │ LayerNorm1                │  │
+│  │ Multi-Head Causal Attn    │  │  ← supports KV cache
+│  │ + shortcut                │  │
+│  └───────────────────────────┘  │
+│  ┌───────────────────────────┐  │
+│  │ LayerNorm2                │  │
+│  │ GELU Feed-Forward         │  │
+│  │ + shortcut                │  │
+│  └───────────────────────────┘  │
+└─────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────┐
+│  Final LayerNorm                │
+│  Output Head [vocab_size]       │
+└─────────────────────────────────┘
+```
+
+The core modules live in `include/Gpt2Untrained/Tests/kv_cache/`:
+
+| Module | File | Purpose |
+|---|---|---|
+| `GptModelV2` | `GptModelV2.hpp/cpp` | Full GPT-2 style model with token+position embedding, stacked transformer blocks, final norm, output head, and KV-cache lifecycle (`reset_kv_cache`) |
+| `TransformBlockV2` | `TransformBlockV2.hpp/cpp` | One transformer block: LayerNorm→Attention→dropout→shortcut, then LayerNorm→FeedForward→dropout→shortcut |
+| `MultiHeadAttentionV2` | `MultiHeadAttentionV2.hpp/cpp` | Multi-head causal self-attention with an optional sliding-window KV cache (`cache_k`, `cache_v`, `current_ptr`) |
+| `FeedForward` | `FeedForward.hpp/cpp` | Two-layer MLP (`emb_dim` → `4×emb_dim` → `emb_dim`) with GELU |
+| `LayerNormV2` | `LayerNormV2.hpp/cpp` | GPT-2 style learnable LayerNorm with affine parameters |
+| `GELU` | `GELU.hpp/cpp` | GPT-2 style GELU activation (tanh approximation) |
+
+## KV-Cache Text Generation
+
+The test `kv_caching` in `kv_cache.cpp` implements a C++ port of `generate_text_simple_cached`:
+
+```cpp
+torch::Tensor generateTextSimpleCached(
+    GptModelV2& model,
+    torch::Tensor idx,
+    int max_new_tokens,
+    int context_size = 0,
+    bool use_cache = true
+);
+```
+
+**How it works:**
+
+1. **Prefill phase** — The input prompt is processed in chunks of `kv_window_size`, filling the cache incrementally (handles prompts longer than the window).
+2. **max_generable cap** — The number of new tokens is limited to `ctx_len - input_length` because of the fixed-size (learned) position embedding.
+3. **Cached decode loop** — Each step feeds only the single newly-predicted token `[batch, 1]` into the model with `use_cache=true`. The attention layers re-read the growing `cache_k`/`cache_v` instead of recomputing keys/values for the entire context — this is the standard optimization used by inference engines like llama.cpp and vLLM.
+
+The KV cache itself (in `MultiHeadAttentionV2`) maintains:
+- `cache_k`, `cache_v` — buffers of shape `[batch, heads, window_size, head_dim]`
+- `current_ptr` — how many valid slots are filled
+- **Overflow handling** — when a new chunk doesn't fit, the oldest tokens are discarded (sliding-window behavior)
+- **Offset causal mask** — when serving a partial attention matrix (cached path), the mask is offset by `K - num_tokens` so newer query rows can attend to all past (cached) keys correctly
 
 
 ## Prerequisites
