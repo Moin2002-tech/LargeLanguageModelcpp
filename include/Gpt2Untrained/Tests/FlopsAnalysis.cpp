@@ -3,6 +3,9 @@
 //
 
 #include <torch/torch.h>
+#include <torch/cuda.h>
+#include <c10/cuda/CUDACachingAllocator.h>
+#include <c10/cuda/CUDAFunctions.h>
 #include <GPT2LargeLanguageModel/util.hpp>
 #include <GPT2LargeLanguageModel/Gpt2Model.hpp>
 #include <doctest.hpp>
@@ -137,6 +140,7 @@ long long compute_params(const config& cfg)
 TEST_CASE("flopsAnalysis")
 {
     torch::Device device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
+   // torch::Device device = torch::kCPU;
 
     // Base configuration (shared across all model sizes)
     config base_config;
@@ -215,6 +219,31 @@ TEST_CASE("flopsAnalysis")
         cfg.drop_rate      = base_config.drop_rate;
         cfg.qkv_bias       = base_config.qkv_bias;
 
+        // Ensure the GPU allocator is fully released before starting this model.
+        // If previous-model tensors are still referenced, memory_allocated() stays
+        // high here — telling us there's a retention leak rather than a HW limit.
+        if (device.is_cuda()) {
+            c10::cuda::CUDACachingAllocator::emptyCache();
+            torch::cuda::synchronize();
+
+            // Diagnostic only — never let it crash the benchmark.
+            try {
+                int device_id = c10::cuda::current_device();  // actual device index
+
+                c10::cuda::CUDACachingAllocator::DeviceStats stats =
+                    c10::cuda::CUDACachingAllocator::getDeviceStats(device_id);
+
+                int64_t allocated_bytes = stats.allocated_bytes[0].current;
+                int64_t cached_bytes    = stats.reserved_bytes[0].current;
+
+                std::cout << "    [CUDA allocated before model: "
+                          << allocated_bytes << " bytes | "
+                          << cached_bytes << " bytes cached]\n";
+            } catch (const std::exception&) {
+                // ignore — diagnostic only
+            }
+        }
+
         std::cout << "\nProcessing " << display_name << "\n";
 
         int max_batch_size = -1;
@@ -236,17 +265,26 @@ TEST_CASE("flopsAnalysis")
                         torch::TensorOptions().device(device).dtype(torch::kLong)
                     );
 
-                    // Create model, move to device
+                    // Create model
                     Gpt2 model = Gpt2(cfg);
-                    model->to(device);
                     model->eval();
 
-                    // Try bfloat16 first, fall back to float32 if it fails
-                    // bfloat16 is more memory efficient but may not be supported on all GPUs
+                    // Cast to bfloat16 on CPU FIRST, then move to GPU.
+                    // model->to() is NOT in-place: it keeps the original FP32 weights
+                    // alive while allocating the bf16 copies. Casting on GPU would
+                    // need FP32 + bf16 simultaneously (e.g. gpt2-large = 3.1 + 1.55 GB),
+                    // which exceeds the 3.62 GiB card. Casting on CPU avoids that.
                     try {
                         model->to(torch::kBFloat16);
                     } catch (const std::exception&) {
                         std::cout << "  (bfloat16 not supported, using float32)\n";
+                    }
+                    // Move the (half-size) weights to the GPU
+                    model->to(device);
+                    // Diagnose the effective dtype — helps detect silent FP32 fallback kernels
+                    if (device.is_cuda() && bs == 1) {
+                        std::cout << "    [dtype after cast: "
+                                  << model->parameters()[0].scalar_type() << "]\n";
                     }
 
                     // Forward pass (no gradient tracking)
@@ -281,6 +319,12 @@ TEST_CASE("flopsAnalysis")
                         std::cout << "  Batch size " << bs << ": "
                                   << "OOM/CUDA error (upper bound found)\n"
                                   << "    Error: " << what.substr(0, 120) << "...\n";
+
+                        // Release the CUDA caching allocator's retained blocks
+                        // so subsequent batch-size attempts get more usable memory.
+                        if (device.is_cuda()) {
+                            c10::cuda::CUDACachingAllocator::emptyCache();
+                        }
                     }
                     else
                     {
@@ -312,15 +356,15 @@ TEST_CASE("flopsAnalysis")
                     );
 
                     Gpt2 model = Gpt2(cfg);
-                    model->to(device);
                     model->eval();
 
-                    // Try bfloat16 first, fall back to float32
+                    // Cast on CPU first, then move to GPU (see note in exponential phase)
                     try {
                         model->to(torch::kBFloat16);
                     } catch (const std::exception&) {
                         // falls back to float32
                     }
+                    model->to(device);
 
                     {
                         torch::NoGradGuard no_grad;
@@ -347,6 +391,12 @@ TEST_CASE("flopsAnalysis")
                         what.find("cuda") != std::string::npos)
                     {
                         high = mid - 1;
+
+                        // Release cached blocks so the next (smaller) batch attempt
+                        // doesn't inherit a nearly-full allocator.
+                        if (device.is_cuda()) {
+                            c10::cuda::CUDACachingAllocator::emptyCache();
+                        }
                     }
                     else
                     {
@@ -368,6 +418,13 @@ TEST_CASE("flopsAnalysis")
         else
         {
             std::cout << "  -> Failed to find any valid batch size!\n";
+        }
+
+        // Model complete — release the CUDA caching allocator's retained blocks.
+        // Without this, the weights from this model stay cached in the allocator
+        // and eat into the GPU budget of the next, larger model (e.g. gpt2-xl).
+        if (device.is_cuda()) {
+            c10::cuda::CUDACachingAllocator::emptyCache();
         }
     }
 }

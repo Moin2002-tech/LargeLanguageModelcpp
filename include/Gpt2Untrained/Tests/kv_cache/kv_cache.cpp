@@ -10,7 +10,7 @@
 
 #include <chrono>
 #include <iostream>
-
+#include<Gpt2Untrained/Tests/multiParameterModel.hpp>
 // C++ port of `generate_text_simple_cached` from the Python reference.
 //
 // Generates `max_new_tokens` tokens from the model's logits, using the
@@ -77,6 +77,34 @@ torch::Tensor generateTextSimpleCached(
     return idx;
 }
 
+void calculate_size(const GptModelV2& model, const std::string& label)
+{
+    int64_t total_params = 0;
+    for (const auto& p : model->parameters())
+    {
+        total_params += p.numel();
+    }
+    std::cout << label << ": Total number of parameters: " << total_params << std::endl;
+
+    // Exclude output head parameters for weight tying
+    auto out_head_params = model.get()->parameters();
+    int64_t out_head_count = 0;
+    for (const auto& p : out_head_params)
+    {
+        out_head_count += p.numel();
+    }
+    int64_t total_params_gpt2 = total_params - out_head_count;
+    std::cout << "  Number of trainable parameters considering weight tying: "
+              << total_params_gpt2 << std::endl;
+
+    // Calculate the total size in bytes (assuming float32, 4 bytes per parameter)
+    double total_size_bytes = static_cast<double>(total_params) * 4.0;
+    double total_size_mb = total_size_bytes / (1024.0 * 1024.0);
+
+    std::cout << "  Total size of the model: " << std::fixed << std::setprecision(2)
+              << total_size_mb << " MB" << std::endl;
+    std::cout << std::endl;
+}
 TEST_CASE("kv_caching") {
     // 1. Build the tokenizer + model (same hyper-params as GPT_CONFIG_124M)
     PreparedData data("/home/moinshaikh/CLionProjects/LargeLanguageModelcpp/datasets/gpt2.tiktoken");
@@ -122,4 +150,5 @@ TEST_CASE("kv_caching") {
 
     std::cout << "\nTime: " << total_time << " sec\n";
     std::cout << static_cast<int>(token_ids.size(1) / total_time) << " tokens/sec\n";
+    calculate_size(model,"gpt2-small");
 }

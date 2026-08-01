@@ -47,9 +47,22 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/Gpt2Untrained/dataPreparation.hpp
         src/Gpt2Untrained/dataPreparation.cpp
         include/Gpt2Untrained/Tests.cpp
-        include/Gpt2Untrained/Tests/multiParameterModel.cpp
+        include/Gpt2Untrained/Tests/multiParameterModel.hpp
         include/Gpt2Untrained/Tests/multiDropout.cpp
-        include/Gpt2Untrained/Tests/FlopsAnalysis.cpp)
+        include/Gpt2Untrained/Tests/FlopsAnalysis.cpp
+        include/Gpt2Untrained/Tests/kv_cache/include/MultiHeadAttentionV2.hpp
+        include/Gpt2Untrained/Tests/kv_cache/include/LayerNormV2.hpp
+        include/Gpt2Untrained/Tests/kv_cache/src/MultiHeadAttentionV2.cpp
+        include/Gpt2Untrained/Tests/kv_cache/src/LayerNormV2.cpp
+        include/Gpt2Untrained/Tests/kv_cache/include/GELU.hpp
+        include/Gpt2Untrained/Tests/kv_cache/src/GELU.cpp
+        include/Gpt2Untrained/Tests/kv_cache/include/FeedForward.hpp
+        include/Gpt2Untrained/Tests/kv_cache/src/FeedForward.cpp
+        include/Gpt2Untrained/Tests/kv_cache/include/TransformBlockV2.hpp
+        include/Gpt2Untrained/Tests/kv_cache/src/TransformBlockV2.cpp
+        include/Gpt2Untrained/Tests/kv_cache/include/GptModelV2.hpp
+        include/Gpt2Untrained/Tests/kv_cache/src/GptModelV2.cpp
+        include/Gpt2Untrained/Tests/kv_cache/kv_cache.cpp)
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/include"

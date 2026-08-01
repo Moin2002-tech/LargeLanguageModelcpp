@@ -62,7 +62,7 @@ int64_t count_params(const torch::nn::Module& model, bool exclude_out_head = fal
     return total;
 }
 
-// Helper: print model statistics matching the Python calculate_size() function
+// Helper: print model statistics matching  function
 void calculate_size(const Gpt2& model, const std::string& label)
 {
     int64_t total_params = 0;
