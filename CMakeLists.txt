@@ -62,7 +62,20 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/Gpt2Untrained/Tests/kv_cache/src/TransformBlockV2.cpp
         include/Gpt2Untrained/Tests/kv_cache/include/GptModelV2.hpp
         include/Gpt2Untrained/Tests/kv_cache/src/GptModelV2.cpp
-        include/Gpt2Untrained/Tests/kv_cache/kv_cache.cpp)
+        include/Gpt2Untrained/Tests/kv_cache/kv_cache.cpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/include/GroupQueryAttentionV1.hpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/src/GroupQueryAttentionV1.cpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/include/LayerNormV3.hpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/src/LayerNormV3.cpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/include/GELUV3.hpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/include/FeedForwardV3.hpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/src/FeedForwardV3.cpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/include/TransformerBlockV4.hpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/src/TransformerBlockV4.cpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/include/Gpt2ModelV3.hpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/src/Gpt2ModelV3.cpp
+        include/Gpt2Untrained/Tests/GroupQueryAttention/GQA.cpp
+        include/Gpt2Untrained/Tests/memoryEstimateMHA_GQA.cpp)
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/include"

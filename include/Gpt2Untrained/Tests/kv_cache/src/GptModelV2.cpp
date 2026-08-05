@@ -48,8 +48,7 @@ torch::Tensor GptModelV2Impl::forward(torch::Tensor x, bool use_cache) {
     x = tok_embed + pos_embed;
     x = dropout->forward(x);
 
-    // Equivalent of:
-    //     for blk in self.trf_blocks: x = blk(x, use_cache=use_cache)
+
     for (int i = 0; i < static_cast<int>(trfBlock->size()); ++i) {
         auto blk = trfBlock->ptr<TransformBlockV2Impl>(i);
         x = blk->forward(x, use_cache);

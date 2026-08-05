@@ -17,6 +17,7 @@ struct config {
      float drop_rate =0.1;      // # Dropout rate
      bool qkv_bias = false;     //  # Query-Key-Value bias
     int kv_window_size = 1024;
+    int n_kv_groups = 2;
 };
 
 //

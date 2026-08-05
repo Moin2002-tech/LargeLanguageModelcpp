@@ -1,27 +1,18 @@
 //
-// Created by moinshaikh on 8/1/26.
+// Created by moinshaikh on 8/5/26.
 //
-#include<Gpt2Untrained/Tests/kv_cache/include/GptModelV2.hpp>
-
-#include<torch/torch.h>
+#include<Gpt2Untrained/Tests/GroupQueryAttention/include/Gpt2ModelV3.hpp>
 #include<Gpt2Untrained/dataPreparation.hpp>
+#include "doctest.hpp"
 
-#include<doctest.hpp>
-
-#include <chrono>
-#include <iostream>
-#include<Gpt2Untrained/Tests/multiParameterModel.hpp>
-// C++ port of `generate_text_simple_cached`
-//
-// Generates `max_new_tokens` tokens from the model's logits, using the
-// KV-cache when `use_cache` is enabled for much faster iterative decoding.
 torch::Tensor generateTextSimpleCached(
-    GptModelV2& model,
+    Gpt2ModelV3& model,
     torch::Tensor idx,
     int max_new_tokens,
     int context_size = 0,
     bool use_cache = true
-) {
+)
+{
     model->eval();
 
     int64_t ctx_len = (context_size > 0)
@@ -77,7 +68,8 @@ torch::Tensor generateTextSimpleCached(
     return idx;
 }
 
-void calculate_size(const GptModelV2& model, const std::string& label)
+
+void calculate_size(const Gpt2ModelV3& model, const std::string& label)
 {
     int64_t total_params = 0;
     for (const auto& p : model->parameters())
@@ -87,14 +79,11 @@ void calculate_size(const GptModelV2& model, const std::string& label)
     std::cout << label << ": Total number of parameters: " << total_params << std::endl;
 
     // Exclude output head parameters for weight tying
+    auto out_head_params = model.get()->parameters();
     int64_t out_head_count = 0;
-    for (const auto& p : model->named_parameters())
+    for (const auto& p : out_head_params)
     {
-        // The output head is registered as "outHead.weight" in GptModelV2
-        if (p.key().find("outHead") != std::string::npos)
-        {
-            out_head_count += p.value().numel();
-        }
+        out_head_count += p.numel();
     }
     int64_t total_params_gpt2 = total_params - out_head_count;
     std::cout << "  Number of trainable parameters considering weight tying: "
@@ -107,14 +96,24 @@ void calculate_size(const GptModelV2& model, const std::string& label)
     std::cout << "  Total size of the model: " << std::fixed << std::setprecision(2)
               << total_size_mb << " MB" << std::endl;
     std::cout << std::endl;
+
+
 }
-TEST_CASE("kv_caching") {
-    // 1. Build the tokenizer + model (same hyper-params as GPT_CONFIG_124M)
-    PreparedData data("/home/moinshaikh/CLionProjects/LargeLanguageModelcpp/datasets/gpt2.tiktoken");
+
+TEST_CASE("groupQueryAttention")
+{
+PreparedData data("/home/moinshaikh/CLionProjects/LargeLanguageModelcpp/datasets/gpt2.tiktoken");
+
+
+    std::string start_context = "Hello, I am";
+    torch::Tensor encoded_tensor = data.encodeBatch({start_context});
+    std::cout << "\nInput text: " << start_context << "\n";
+    std::cout << "Encoded input text: " << encoded_tensor << "\n";
 
     config cfg;
+    int max_new_tokens = 200;
     cfg.vocab_size    = 50257;   // Vocabulary size
-    cfg.context_length = 1024;   // Context length
+    cfg.context_length = 1024 ;   // Context length
     cfg.emb_dim       = 768;     // Embedding dimension
     cfg.n_heads       = 12;      // Number of attention heads
     cfg.n_layer       = 12;      // Number of layers
@@ -122,16 +121,7 @@ TEST_CASE("kv_caching") {
     cfg.qkv_bias      = false;   // Query-Key-Value bias
     cfg.kv_window_size = 1024;   // KV cache window size
 
-    GptModelV2 model(cfg);
-    model->eval();  // disable dropout
-
-    std::string start_context = "Hello, I am";
-
-    // Encode the start context into a [1, n_tokens] batch
-    torch::Tensor encoded_tensor = data.encodeBatch({start_context});
-    std::cout << "\nInput text: " << start_context << "\n";
-    std::cout << "Encoded input text: " << encoded_tensor << "\n";
-
+    Gpt2ModelV3 model(cfg);
 
     auto start = std::chrono::steady_clock::now();
 
@@ -154,4 +144,6 @@ TEST_CASE("kv_caching") {
     std::cout << "\nTime: " << total_time << " sec\n";
     std::cout << static_cast<int>(token_ids.size(1) / total_time) << " tokens/sec\n";
     calculate_size(model,"gpt2-small");
+
+
 }
