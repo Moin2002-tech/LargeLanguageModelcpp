@@ -18,7 +18,7 @@
  * KV-cache Memory & Bandwidth Estimate: MHA vs GQA
  *
  * 1. KV-cache Memory
- * ------------------
+ *
  * This analysis estimates the KV-cache memory footprint for
  * Multi-Head Attention (MHA) vs Grouped-Query Attention (GQA).
  *
@@ -36,7 +36,7 @@
  * GQA reduces the KV-cache memory by a factor of n_kv_groups compared to MHA.
  *
  * 2. Memory Bandwidth (Decoding)
- * ------------------------------
+ *
  * During autoregressive decoding, each newly generated token attends to ALL
  * previous tokens, so the entire KV cache must be read from memory once per
  * generated token. This makes KV-cache traffic the dominant memory-bandwidth

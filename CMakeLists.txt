@@ -75,7 +75,14 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/Gpt2Untrained/Tests/GroupQueryAttention/include/Gpt2ModelV3.hpp
         include/Gpt2Untrained/Tests/GroupQueryAttention/src/Gpt2ModelV3.cpp
         include/Gpt2Untrained/Tests/GroupQueryAttention/GQA.cpp
-        include/Gpt2Untrained/Tests/memoryEstimateMHA_GQA.cpp)
+        include/Gpt2Untrained/Tests/memoryEstimateMHA_GQA.cpp
+        include/Gpt2Untrained/Tests/MultiHeadLatent/include/MultiHeadLatentV1.hpp
+        include/Gpt2Untrained/Tests/MultiHeadLatent/src/MultiHeadLatentV1.cpp
+        include/Gpt2Untrained/Tests/MultiHeadLatent/include/TransformBlockV5.hpp
+        include/Gpt2Untrained/Tests/MultiHeadLatent/src/TransformerBlockV5.cpp
+        include/Gpt2Untrained/Tests/MultiHeadLatent/include/gpt2mhl.hpp
+        include/Gpt2Untrained/Tests/MultiHeadLatent/src/gpt2mhl.cpp
+        include/Gpt2Untrained/Tests/MultiHeadLatent/mhl.cpp)
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/include"
