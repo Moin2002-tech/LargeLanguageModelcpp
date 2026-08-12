@@ -127,11 +127,21 @@ const std::map<std::string, int> DTYPE_BYTES_MLA = {
     {"int8", 1}
 };
 
+// Format bytes for display.  Use MB when the value is < 0.1 GB so that small
+// KV caches (e.g. MLA's ~2.4 MB) aren't truncated to "0.00 GB" by rounding.
 std::string convert_bytes_mla(long double n)
 {
     long double gb = n / 1000.0L / 1000.0L / 1000.0L;
     std::ostringstream oss;
-    oss << std::fixed << std::setprecision(2) << gb << " GB";
+    if (gb < 0.1L)
+    {
+        long double mb = n / 1000.0L / 1000.0L;
+        oss << std::fixed << std::setprecision(2) << mb << " MB";
+    }
+    else
+    {
+        oss << std::fixed << std::setprecision(2) << gb << " GB";
+    }
     return oss.str();
 }
 
