@@ -24,22 +24,47 @@ list(APPEND CMAKE_PREFIX_PATH
 )
 
 #find_package(PCRE2 REQUIRED CONFIG)
-# 1. Handle PCRE2 via PkgConfig
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(PCRE2 REQUIRED libpcre2-8)
-
-if(NOT TARGET PCRE2::8BIT)
-    add_library(PCRE2::8BIT INTERFACE IMPORTED)
-    target_include_directories(PCRE2::8BIT INTERFACE ${PCRE2_INCLUDE_DIRS})
-    target_link_libraries(PCRE2::8BIT INTERFACE ${PCRE2_LIBRARIES})
+# 1. Handle PCRE2
+if(WIN32)
+    # Windows: use the vcpkg-provided pcre2-8 library (full path)
+    if(DEFINED VCPKG_INSTALLED_DIR)
+        set(_PCRE2_INCLUDE_DIR "${VCPKG_INSTALLED_DIR}/x64-windows/include")
+        set(_PCRE2_LIB "${VCPKG_INSTALLED_DIR}/x64-windows/lib/pcre2-8.lib")
+    else()
+        set(_PCRE2_INCLUDE_DIR "C:/dev/vcpkg/installed/x64-windows/include")
+        set(_PCRE2_LIB "C:/dev/vcpkg/installed/x64-windows/lib/pcre2-8.lib")
+    endif()
+    if(NOT TARGET PCRE2::8BIT)
+        add_library(PCRE2::8BIT INTERFACE IMPORTED)
+        target_include_directories(PCRE2::8BIT INTERFACE ${_PCRE2_INCLUDE_DIR})
+        target_link_libraries(PCRE2::8BIT INTERFACE ${_PCRE2_LIB})
+    endif()
+else()
+    # Linux/macOS: use PkgConfig
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(PCRE2 REQUIRED libpcre2-8)
+    if(NOT TARGET PCRE2::8BIT)
+        add_library(PCRE2::8BIT INTERFACE IMPORTED)
+        target_include_directories(PCRE2::8BIT INTERFACE ${PCRE2_INCLUDE_DIRS})
+        target_link_libraries(PCRE2::8BIT INTERFACE ${PCRE2_LIBRARIES})
+    endif()
 endif()
 set(_PCRE2_TARGET PCRE2::8BIT)
 
-# 2. Handle utf8cpp manually (Assuming libutfcpp-dev is installed)
+# 2. Handle utf8cpp manually
 if(NOT TARGET utf8cpp::utf8cpp)
     add_library(utf8cpp::utf8cpp INTERFACE IMPORTED)
-    # Ubuntu path for libutfcpp-dev
-    target_include_directories(utf8cpp::utf8cpp INTERFACE /usr/include/utf8cpp)
+    if(WIN32)
+        # Windows: utf8.h is provided by vcpkg at <vcpkg>/installed/x64-windows/include/utf8cpp
+        if(DEFINED VCPKG_INSTALLED_DIR)
+            target_include_directories(utf8cpp::utf8cpp INTERFACE "${VCPKG_INSTALLED_DIR}/x64-windows/include/utf8cpp")
+        else()
+            target_include_directories(utf8cpp::utf8cpp INTERFACE "C:/dev/vcpkg/installed/x64-windows/include/utf8cpp")
+        endif()
+    else()
+        # Ubuntu path for libutfcpp-dev
+        target_include_directories(utf8cpp::utf8cpp INTERFACE /usr/include/utf8cpp)
+    endif()
 endif()
 set(_UTF8CPP_TARGET utf8cpp::utf8cpp)
 

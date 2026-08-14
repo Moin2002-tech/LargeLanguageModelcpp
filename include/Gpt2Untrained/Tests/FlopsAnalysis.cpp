@@ -4,8 +4,7 @@
 
 #include <torch/torch.h>
 #include <torch/cuda.h>
-#include <c10/cuda/CUDACachingAllocator.h>
-#include <c10/cuda/CUDAFunctions.h>
+
 #include <GPT2LargeLanguageModel/util.hpp>
 #include <GPT2LargeLanguageModel/Gpt2Model.hpp>
 #include <doctest.hpp>
@@ -222,6 +221,8 @@ TEST_CASE("flopsAnalysis")
         // Ensure the GPU allocator is fully released before starting this model.
         // If previous-model tensors are still referenced, memory_allocated() stays
         // high here — telling us there's a retention leak rather than a HW limit.
+        //there is no support in windows for cuda
+        /*
         if (device.is_cuda()) {
             c10::cuda::CUDACachingAllocator::emptyCache();
             torch::cuda::synchronize();
@@ -242,7 +243,7 @@ TEST_CASE("flopsAnalysis")
             } catch (const std::exception&) {
                 // ignore — diagnostic only
             }
-        }
+        }*/
 
         std::cout << "\nProcessing " << display_name << "\n";
 
@@ -323,7 +324,7 @@ TEST_CASE("flopsAnalysis")
                         // Release the CUDA caching allocator's retained blocks
                         // so subsequent batch-size attempts get more usable memory.
                         if (device.is_cuda()) {
-                            c10::cuda::CUDACachingAllocator::emptyCache();
+                          //  c10::cuda::CUDACachingAllocator::emptyCache();
                         }
                     }
                     else
@@ -395,7 +396,7 @@ TEST_CASE("flopsAnalysis")
                         // Release cached blocks so the next (smaller) batch attempt
                         // doesn't inherit a nearly-full allocator.
                         if (device.is_cuda()) {
-                            c10::cuda::CUDACachingAllocator::emptyCache();
+                          //  c10::cuda::CUDACachingAllocator::emptyCache();
                         }
                     }
                     else
@@ -424,7 +425,7 @@ TEST_CASE("flopsAnalysis")
         // Without this, the weights from this model stay cached in the allocator
         // and eat into the GPU budget of the next, larger model (e.g. gpt2-xl).
         if (device.is_cuda()) {
-            c10::cuda::CUDACachingAllocator::emptyCache();
+         //   c10::cuda::CUDACachingAllocator::emptyCache();
         }
     }
 }

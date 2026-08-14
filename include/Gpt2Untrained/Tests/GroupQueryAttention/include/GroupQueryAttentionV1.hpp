@@ -8,7 +8,7 @@
 #include<torch/torch.h>
 #include<torch/nn.h>
 #include<GPT2LargeLanguageModel/util.hpp>
-
+using uint = unsigned int;
 
 class GroupQueryAttentionV1Impl : public torch::nn::Module
 {

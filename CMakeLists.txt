@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(CMAKE_CXX_STANDARD 20)
-set(TORCH_CUDA_ARCH_LIST "7.5")
-set(CAFFE2_USE_CUDNN 9)
+set(CMAKE_CXX_STANDARD 17)
+
+# Configure doctest
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
 
 project(LargeLanguageModelcpp)
 
 
-set(CMAKE_TOOLCHAIN_FILE "/home/moinshaikh/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+#set(CMAKE_TOOLCHAIN_FILE "/home/moinshaikh/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 
 # Add tiktoken as a subdirectory
 add_subdirectory(external/tiktoken)
@@ -19,7 +22,8 @@ find_package(CURL CONFIG REQUIRED)
 
 
 
-
+set(CMAKE_TOOLCHAIN_FILE "C:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain")
+add_definitions(-DMODELS_DIR="${CMAKE_SOURCE_DIR}/datasets")
 add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/basics/Text.h
         src/basics/Text.cpp
@@ -102,30 +106,12 @@ target_include_directories(LargeLanguageModelcpp PRIVATE
 # Link against tiktoken, pcre2, and curl
 target_link_libraries(LargeLanguageModelcpp PRIVATE
 
-        -Wl,--no-as-needed
-        -Wl,--whole-archive
-        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/libtorch_cuda.so"
-        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/libtorch_cpu.so"
-        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/libtorch.so"
-        -Wl,--no-whole-archive
 
-        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/libc10_cuda.so"
-        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/libc10.so"
+        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch.lib"
+        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch_cpu.lib"
+        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/c10.lib"
+        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/fmt.lib"
 
-        # 1. CUDA Runtime (from your toolkit)
-        "/usr/local/cuda/lib64/libcudart.so"
-
-        # 2. CUDA Driver (The one usually missing - found in system libs)
-        "/usr/lib/x86_64-linux-gnu/libcuda.so.1"
-
-        # 3. NVRTC (Compiler library)
-        "/usr/local/cuda/lib64/libnvrtc.so"
-
-        fmt::fmt
-        # System base libs
-        pthread
-        dl
-        m
 )
 
 target_link_libraries(LargeLanguageModelcpp PRIVATE tiktoken
@@ -139,3 +125,19 @@ set_target_properties(LargeLanguageModelcpp PROPERTIES
         BUILD_WITH_INSTALL_RPATH TRUE
         MAP_IMPORTED_CONFIG_DEBUG "DEBUG;RELEASE"
 )
+
+# Copy required DLLs next to the executable (RPATH does not work on Windows)
+if(WIN32)
+    add_custom_command(TARGET LargeLanguageModelcpp POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch.dll"
+            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch_cpu.dll"
+            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/c10.dll"
+            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch_global_deps.dll"
+            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/uv.dll"
+            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/shm.dll"
+            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/libiomp5md.dll"
+            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/libiompstubs5md.dll"
+            "$<TARGET_FILE_DIR:LargeLanguageModelcpp>"
+    )
+endif()

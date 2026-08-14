@@ -4,7 +4,7 @@
 
 #ifndef LARGELANGUAGEMODELCPP_ATTENTIONMECHANISM_HPP
 #define LARGELANGUAGEMODELCPP_ATTENTIONMECHANISM_HPP
-
+using uint = unsigned int;
 #include<iostream>
 #include<torch/torch.h>
 #include<tiktoken.hpp>

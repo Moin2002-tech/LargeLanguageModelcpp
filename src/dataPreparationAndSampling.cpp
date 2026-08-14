@@ -38,8 +38,7 @@ TEST_CASE("DataPreparation&Sampling") {
   try {
     // 1. Initialize the tokenizer (cl100k_base as in the workspace)
     auto ranks = tiktoken::load_tiktoken_bpe_from_file(
-        "/home/moinshaikh/CLionProjects/LargeLanguageModelcpp/datasets/"
-        "cl100k_base.tiktoken");
+        MODELS_DIR "/cl100k_base.tiktoken");
     tiktoken::EncodingDefinition def;
     def.name = "cl100k_base";
     def.pat_str =
@@ -50,10 +49,9 @@ TEST_CASE("DataPreparation&Sampling") {
     auto tokenizer = tiktoken::get_encoding("cl100k_base");
 
     // 2. Read the text file
-    std::ifstream file("/home/moinshaikh/CLionProjects/LargeLanguageModelcpp/"
-                       "datasets/the-verdict.txt");
+    std::ifstream file(MODELS_DIR "/the-verdict.txt");
     if (!file.is_open()) {
-      std::cerr << "Could not open datasets/the-verdict.txt" << std::endl;
+      std::cerr << "Could not open " MODELS_DIR "/the-verdict.txt" << std::endl;
     }
     std::stringstream buffer;
     buffer << file.rdbuf();

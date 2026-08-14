@@ -110,7 +110,7 @@ void calculate_size(const GptModelV2& model, const std::string& label)
 }
 TEST_CASE("kv_caching") {
     // 1. Build the tokenizer + model (same hyper-params as GPT_CONFIG_124M)
-    PreparedData data("/home/moinshaikh/CLionProjects/LargeLanguageModelcpp/datasets/gpt2.tiktoken");
+    PreparedData data(MODELS_DIR "/gpt2.tiktoken");
 
     config cfg;
     cfg.vocab_size    = 50257;   // Vocabulary size

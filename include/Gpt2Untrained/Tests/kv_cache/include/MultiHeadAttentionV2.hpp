@@ -8,7 +8,7 @@
 #include<torch/torch.h>
 #include<GPT2LargeLanguageModel/util.hpp>
 
-
+using uint = unsigned int;
 class MultiHeadAttentionV2Impl : public torch::nn::Module {
 private:
     uint d_in;

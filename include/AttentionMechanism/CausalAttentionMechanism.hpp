@@ -7,10 +7,10 @@
 
 #include<torch/torch.h>
 #include<cmath>
-
+using uint = unsigned int;
 class CausalAttentionMechanismImpl : public torch::nn::Module {
 private:
-  uint d_in, d_out;
+  int d_in, d_out;
   torch::nn::Linear W_key{nullptr}, W_value{nullptr}, W_query{nullptr};
   torch::nn::Dropout dropout_layer{nullptr};
   torch::Tensor mask;
