@@ -102,7 +102,7 @@ void calculate_size(const Gpt2ModelV3& model, const std::string& label)
 
 TEST_CASE("groupQueryAttention")
 {
-PreparedData data("/home/moinshaikh/CLionProjects/LargeLanguageModelcpp/datasets/gpt2.tiktoken");
+PreparedData data(std::string(DATASETS_DIR) + "gpt2.tiktoken");
 
 
     std::string start_context = "Hello, I am";

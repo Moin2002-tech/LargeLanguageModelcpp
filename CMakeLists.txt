@@ -17,7 +17,7 @@ find_package(pcre2 CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
 
 
-
+add_definitions(-DDATASETS_DIR="${CMAKE_SOURCE_DIR}/datasets/")
 
 
 add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
@@ -82,7 +82,8 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/src/TransformerBlockV5.cpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/include/gpt2mhl.hpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/src/gpt2mhl.cpp
-        include/Gpt2Untrained/Tests/MultiHeadLatent/mhl.cpp)
+        include/Gpt2Untrained/Tests/MultiHeadLatent/mhl.cpp
+)
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/include"

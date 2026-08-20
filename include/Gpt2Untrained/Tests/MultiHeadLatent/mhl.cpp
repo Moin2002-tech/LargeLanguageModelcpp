@@ -2,7 +2,7 @@
 // Created by moinshaikh on 8/10/26.
 //
 
-#include <torch/torch.h>
+
 #include <chrono>
 #include <cmath>
 #include <iomanip>
@@ -270,7 +270,7 @@ TEST_CASE("mlaMemoryEstimate_MHA_GQA_MLA")
 TEST_CASE("multiHeadLatentTextGeneration")
 {
     // ---- Tokenizer / data ----
-    PreparedData data("/home/moinshaikh/CLionProjects/LargeLanguageModelcpp/datasets/gpt2.tiktoken");
+    PreparedData data(std::string(DATASETS_DIR) + "gpt2.tiktoken");
 
     std::string start_context = "Hello, I am";
     torch::Tensor encoded_tensor = data.encodeBatch({start_context});

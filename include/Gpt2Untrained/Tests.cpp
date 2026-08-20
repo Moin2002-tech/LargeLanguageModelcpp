@@ -11,7 +11,7 @@
 
 
 TEST_CASE("untrainedModelTests") {
-    PreparedData data("/home/moinshaikh/CLionProjects/LargeLanguageModelcpp/datasets/gpt2.tiktoken");
+    PreparedData data(std::string(DATASETS_DIR) + "gpt2.tiktoken");
 
     // Encode a starting prompt into a batch tensor [1, n_tokens]
     auto batch = data.encodeBatch({"Every effort moves you"});
