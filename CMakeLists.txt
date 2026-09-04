@@ -83,6 +83,7 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/include/gpt2mhl.hpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/src/gpt2mhl.cpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/mhl.cpp
+        src/TrainedGpt/preTrainingOnunlabled.cpp
 )
 
 target_include_directories(LargeLanguageModelcpp PRIVATE

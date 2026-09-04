@@ -12,7 +12,6 @@
 // Helper function to create a dataloader
 // In C++, we return a unique_ptr to the dataloader.
 // We use a template for the Sampler if we want to be generic, but
-// SequentialSampler matches the Python default.
 auto create_dataloader(const std::string &txt,
                        std::shared_ptr<tiktoken::Encoding> tokenizer,
                        int batch_size = 4, int max_length = 256,
@@ -35,7 +34,8 @@ auto create_dataloader(const std::string &txt,
 }
 
 TEST_CASE("DataPreparation&Sampling") {
-  try {
+  try
+  {
     // 1. Initialize the tokenizer (cl100k_base as in the workspace)
     auto ranks = tiktoken::load_tiktoken_bpe_from_file(
         std::string(DATASETS_DIR) + "cl100k_base.tiktoken");
@@ -70,7 +70,8 @@ TEST_CASE("DataPreparation&Sampling") {
       auto input = batch.data;
       auto target = batch.target;
       // print first 4 input and target
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 4; i++)
+      {
         std::cout << "Input: " << input[i] << std::endl;
         std::cout << "Target: " << target[i] << std::endl;
       }
@@ -85,8 +86,9 @@ TEST_CASE("DataPreparation&Sampling") {
 
       break; // Just one batch for verification
     }
-
-  } catch (const std::exception &e) {
+  }
+  catch (const std::exception &e)
+  {
     std::cerr << "Error: " << e.what() << std::endl;
   }
 
@@ -94,6 +96,9 @@ TEST_CASE("DataPreparation&Sampling") {
   auto numIndex = torch::max(index).item<int>() + 1;
   auto embed = torch::nn::Embedding(numIndex, 5);
   std::cout << "Embedding: " << embed->weight << std::endl;
+
+
+
 
 
 }

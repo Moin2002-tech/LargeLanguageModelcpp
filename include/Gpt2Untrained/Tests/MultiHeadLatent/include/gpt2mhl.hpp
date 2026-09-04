@@ -33,6 +33,10 @@ public:
         current_pos = 0;
     }
 
+    auto getpos_emb() {
+        return pos_emb;
+    }
+
 };TORCH_MODULE(gpt2mhl);
 
 

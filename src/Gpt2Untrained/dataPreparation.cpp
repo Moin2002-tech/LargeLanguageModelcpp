@@ -80,3 +80,36 @@ std::string PreparedData::decode(torch::Tensor tokenIds) const {
     // Decode via tiktoken
     return tokenizer->decode(ids);
 }
+
+torch::Tensor PreparedData::textToTokenIds(const std::string& text) const {
+    // Mirror Python: tokenizer.encode(text, allowed_special={'<|endoftext|>'})
+    std::set<std::string> allowed_special = {"<|endoftext|>"};
+    auto tokenIds = tokenizer->encode(text, allowed_special);
+
+    // Convert to tensor, then unsqueeze to add batch dimension -> [1, seq_len]
+    std::vector<int64_t> ids;
+    ids.reserve(tokenIds.size());
+    for (auto id : tokenIds) {
+        ids.push_back(static_cast<int64_t>(id));
+    }
+    return torch::tensor(ids, torch::kInt64).unsqueeze(0);
+}
+
+std::string PreparedData::tokenIdsToText(torch::Tensor tokenIds) const {
+    // Mirror Python: flat = token_ids.squeeze(0); tokenizer.decode(flat.tolist())
+    // Squeeze batch dim if present: [1, n] -> [n]
+    if (tokenIds.dim() == 2 && tokenIds.size(0) == 1) {
+        tokenIds = tokenIds.squeeze(0);
+    }
+
+    // Convert tensor to vector<Rank>
+    auto accessor = tokenIds.accessor<int64_t, 1>();
+    std::vector<tiktoken::Rank> ids;
+    ids.reserve(tokenIds.size(0));
+    for (int64_t i = 0; i < tokenIds.size(0); ++i) {
+        ids.push_back(static_cast<tiktoken::Rank>(accessor[i]));
+    }
+
+    // Decode via tiktoken
+    return tokenizer->decode(ids);
+}

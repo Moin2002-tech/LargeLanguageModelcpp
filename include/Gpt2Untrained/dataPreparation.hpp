@@ -27,6 +27,22 @@ public:
     // Equivalent to: tokenizer.decode(tokens.squeeze(0).tolist())
     std::string decode(torch::Tensor tokenIds) const;
 
+    // Mirror Python text_to_token_ids:
+    // encoded = tokenizer.encode(text, allowed_special={'<|endoftext|>'})
+    // return torch.tensor(encoded).unsqueeze(0)  -> [1, seq_len]
+    torch::Tensor textToTokenIds(const std::string& text) const;
+
+    //get Tokenizer
+    auto getTokenizer() const  {
+        return tokenizer;
+    }
+    auto getTokenizer()  {
+        return tokenizer;
+    }
+    // Mirror Python token_ids_to_text:
+    // flat = token_ids.squeeze(0); return tokenizer.decode(flat.tolist())
+    std::string tokenIdsToText(torch::Tensor tokenIds) const;
+
     torch::Tensor generateTextSimple(
     Gpt2& model,
     torch::Tensor idx,
