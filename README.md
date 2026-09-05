@@ -1,9 +1,10 @@
 # LargeLanguageModelcpp
 
-A C++ implementation of a GPT-like large language model from scratch, built with **LibTorch** (PyTorch C++ API). This project is a learning exercise to understand transformer architecture, attention mechanisms, tokenization, KV caching, and data pipelines all in C++.
+A C++ implementation of a GPT-like large language model from scratch, built with **LibTorch** (PyTorch C++ API). This project is a learning exercise to understand transformer architecture, attention mechanisms (including modern variants), tokenization, KV caching, data pipelines, and full pre-training loops—all in C++.
 
 ## Features
 
+### Core Transformer Architecture
 - **Attention Mechanism** : Self-attention with learned Q, K, V weight matrices (scaled dot-product attention)
 - **Multi-Head Causal Attention** : Multi-head self-attention with causal masking (GPT-2 style)
 - **KV Cache** : Key-value caching for fast iterative text generation (`MultiHeadAttentionV2`, `GptModelV2`)
@@ -13,7 +14,22 @@ A C++ implementation of a GPT-like large language model from scratch, built with
 - **GPT Dataset V1** : Custom dataset loader for text-based training data (`the-verdict.txt`)
 - **Tokenizer** : OpenAI's **tiktoken** C++ port for BPE (Byte-Pair Encoding) tokenization
 - **Embeddings** : Token + position embedding layer
-- **doctest** : Unit tests for all components
+
+### Modern Attention Variants
+- **Group Query Attention (GQA)** : `GroupQueryAttentionV1` — query heads split into `n_kv_groups`; each group of `groupSize = numHeads / numKvGroups` query heads shares a single K/V head. Reduces KV-cache memory footprint and attention bandwidth during decoding at a small accuracy cost vs full MHA.
+- **Multi-Head Latent Attention (MLA)** : `MultiHeadLatentV1` / `gpt2mhl` — latent (low-rank) compression of the K/V projections (DeepSeek-style) to shrink KV-cache memory even further than GQA.
+
+### Pre-Training Pipeline
+- **Data Preparation** : `PreparedData` (`dataPreparation.hpp/cpp`) — tokenizer loading, text↔token-ID conversion, batch encoding, and sliding-window GPT dataset construction.
+- **DataLoader** : Custom `createDataLoaderV2` with `SequentialSampler` matching Python's `DataLoader(shuffle=False)`, producing `[batch, seq_len]` input/target batches (targets = inputs shifted by 1).
+- **Cross-Entropy Loss** : `cal_loss_batch` / `total_loss_loader` — batch loss and full-loader loss evaluation (mirrors PyTorch's `calc_loss_batch` / `calc_loss_loader`).
+- **Training Loop** : `train_model_simple` — AdamW optimizer (`lr=4e-4`, `weight_decay=0.1`), epoch/step tracking, periodic train/val loss evaluation, CUDA cache clearing, and text-sample generation during training.
+- **Sampling** : `generate_with_temperature` — top-k filtering + temperature-scaled softmax + `multinomial` sampling, with optional EOS-token early stopping.
+
+### Analysis Tooling
+- **FLOPs Analysis** : `FlopsAnalysis.cpp` — estimates floating-point operations for attention layers.
+- **Memory Estimation** : `memoryEstimateMHA_GQA.cpp` — compares KV-cache memory footprint of full Multi-Head Attention vs Group Query Attention.
+- **Unit Tests** : **doctest** — all components are tested through `TEST_CASE` macros (no `main()`; doctest provides the entry point).
 
 ## Architecture
 
@@ -33,7 +49,7 @@ Input Tokens [batch, seq_len]
 │  Transformer Block              │
 │  ┌───────────────────────────┐  │
 │  │ LayerNorm1                │  │
-│  │ Multi-Head Causal Attn    │  │  ← supports KV cache
+│  │ Multi-Head Causal Attn    │  │  ← MHA / GQA / MLA variants
 │  │ + shortcut                │  │
 │  └───────────────────────────┘  │
 │  ┌───────────────────────────┐  │
@@ -50,7 +66,9 @@ Input Tokens [batch, seq_len]
 └─────────────────────────────────┘
 ```
 
-The core modules live in `include/Gpt2Untrained/Tests/kv_cache/`:
+## Module Layout
+
+### KV-Cache Implementation — `include/Gpt2Untrained/Tests/kv_cache/`
 
 | Module | File | Purpose |
 |---|---|---|
@@ -60,6 +78,33 @@ The core modules live in `include/Gpt2Untrained/Tests/kv_cache/`:
 | `FeedForward` | `FeedForward.hpp/cpp` | Two-layer MLP (`emb_dim` → `4×emb_dim` → `emb_dim`) with GELU |
 | `LayerNormV2` | `LayerNormV2.hpp/cpp` | GPT-2 style learnable LayerNorm with affine parameters |
 | `GELU` | `GELU.hpp/cpp` | GPT-2 style GELU activation (tanh approximation) |
+
+### Group Query Attention — `include/Gpt2Untrained/Tests/GroupQueryAttention/`
+
+| Module | File | Purpose |
+|---|---|---|
+| `GroupQueryAttentionV1` | `GroupQueryAttentionV1.hpp/cpp` | GQA attention layer; projects Q to `numHeads×head_dim` but K/V to `numKvGroups×head_dim`, then shares each K/V head across a group of query heads via `repeat_interleave`. Maintains a growing KV cache. |
+| `Gpt2ModelV3` | `Gpt2ModelV3.hpp/cpp` | GPT-2 model variant using GQA attention with KV cache lifecycle |
+| `TransformerBlockV4` | `TransformerBlockV4.hpp/cpp` | Transformer block with GQA attention |
+| `FeedForwardV3` | `FeedForwardV3.hpp/cpp` | GELU feed-forward network |
+| `LayerNormV3` | `LayerNormV3.hpp/cpp` | Learnable LayerNorm |
+| `GELUV3` | `GELUV3.hpp/cpp` | GPT-2 style GELU |
+
+### Multi-Head Latent Attention — `include/Gpt2Untrained/Tests/MultiHeadLatent/`
+
+| Module | File | Purpose |
+|---|---|---|
+| `gpt2mhl` | `gpt2mhl.hpp/cpp` | End-to-end GPT-2 model with Multi-Head Latent Attention; supports KV cache, loss, generation (`generateTextSimpleCachedV2`), and pre-training |
+| `MultiHeadLatentV1` | `MultiHeadLatentV1.hpp/cpp` | Latent (low-rank) K/V compression attention layer to minimize KV-cache memory |
+| `TransformerBlockV5` | `TransformerBlockV5.hpp/cpp` | Transformer block using the latent attention layer |
+
+### Data Preparation & Pre-Training
+
+| Module | File | Purpose |
+|---|---|---|
+| `PreparedData` | `include/Gpt2Untrained/dataPreparation.hpp`, `src/Gpt2Untrained/dataPreparation.cpp` | Tokenizer loading, text↔token-ID conversion, batch encoding |
+| `GPTDatasetV1` | `include/basics/GPTDatasetV1.h` | Sliding-window dataset producing input/target pairs (target = input shifted by 1) |
+| `preTrainingOnunlabled.cpp` | `src/TrainedGpt/preTrainingOnunlabled.cpp` | Full pre-training driver: data loaders, cross-entropy loss, AdamW training loop, loss evaluation, temperature/top-k sampling |
 
 ## KV-Cache Text Generation
 
@@ -87,6 +132,47 @@ The KV cache itself (in `MultiHeadAttentionV2`) maintains:
 - **Overflow handling** — when a new chunk doesn't fit, the oldest tokens are discarded (sliding-window behavior)
 - **Offset causal mask** — when serving a partial attention matrix (cached path), the mask is offset by `K - num_tokens` so newer query rows can attend to all past (cached) keys correctly
 
+## Attention Variants Comparison
+
+| Variant | KV Heads | KV-cache memory | Notes |
+|---|---|---|---|
+| Multi-Head Attention (MHA) | `numHeads` | `numHeads × head_dim` per token | Baseline, full expressiveness |
+| Group Query Attention (GQA) | `numKvGroups` | `numKvGroups × head_dim` per token | Greatly reduced cache; small accuracy cost. Groups of query heads share one K/V head. |
+| Multi-Head Latent Attention (MLA) | latent (compressed) | low-rank compressed per token | Even smaller cache than GQA via latent K/V compression |
+
+## Pre-Training
+
+Pre-training is driven from `src/TrainedGpt/preTrainingOnunlabled.cpp` using the `gpt2mhl` (Multi-Head Latent Attention) model. The pipeline mirrors the classic GPT-2 "from scratch" training recipe:
+
+1. **Data split** — the corpus (e.g. `the-verdict.txt`) is split into train/validation sets (configurable ratio, e.g. 90/10 or 70/30).
+2. **DataLoaders** — `createDataLoaderV2` builds `[batch, seq_len]` batches with a sliding-window stride; targets are inputs shifted by one token.
+3. **Loss** — `cal_loss_batch` computes cross-entropy on the flattened logits vs targets; `total_loss_loader` averages over a loader.
+4. **Optimizer** — AdamW (`lr = 4e-4`, `weight_decay = 0.1`); gradients zeroed with `set_to_none=true` to free memory; CUDA cache emptied periodically.
+5. **Evaluation** — every `eval_freq` steps the model is evaluated on both train and validation loaders, and a sample is generated to visually track progress.
+
+### Sampling
+
+`generate_with_temperature` supports:
+- Greedy decoding (default)
+- **Top-k filtering** — keep only the `top_k` most likely logits before softmax
+- **Temperature scaling** — `logits / temperature` before softmax for diversity control
+- **EOS early stop** — stops generation when an optional end-of-sequence token is sampled
+
+## Pretrained Model Weights
+
+The randomly-initialized model must be pre-trained before it produces coherent text. You can download the **GPT-2 small (124M)** pretrained weights (PyTorch format) trained from scratch:
+
+```
+https://huggingface.co/rasbt/gpt2-from-scratch-pytorch/resolve/main/gpt2-small-124M.pth
+```
+
+Save it as `models/gpt2-small-124M.pth` (or your preferred path) and load it into the model with `torch::load` before inference/training:
+
+```cpp
+torch::load(model, "models/gpt2-small-124M.pth");
+```
+
+> **Note:** These weights are in PyTorch `.pth` format. When loading into the C++ model, ensure the state-dict keys and shapes match the architecture (MHA vs GQA vs MLA variants have different KV projection shapes).
 
 ## Prerequisites
 
@@ -225,7 +311,7 @@ cd build && make
 ./LargeLanguageModelcpp
 ```
 
-This runs the doctest test suite which prints attention scores, softmax outputs, context vectors, and the full 6×6 attention score matrix.
+This runs the doctest test suite which prints attention scores, softmax outputs, context vectors, the full 6×6 attention score matrix, and the pre-training/loss-evaluation diagnostics.
 
 ## License
 
