@@ -276,12 +276,15 @@ EntropyData train_model_simple(gpt2mhl &model,PreparedData &preparedData,
             auto loss = cal_loss_batch(inputBatch, targetBatch, model);
             loss.backward();// Calculate loss gradients
             optimizer.step();//Update model weights using loss gradients
+            optimizer.zero_grad(/*set_to_none=*/true);   // frees the ~500MB grad buffers immediately
             token_seen += static_cast<int>(inputBatch.numel());
             global_step += 1;
 
             //Optional evaluation step
             // Evaluation / tracking step
+
             if (global_step % numEpochs == 0) {
+                c10::cuda::CUDACachingAllocator::emptyCache();
                 auto [trainLoss, valLoss] = evaluate_model(model,trainLoader,valLoader,device,iteration);
 
                 // 1. Reshape scalar losses into 1D tensors.
@@ -313,6 +316,7 @@ TEST_CASE("PreTrainingOnunlabledData")
     PreparedData data(std::string(DATASETS_DIR) + "gpt2.tiktoken");
     torch::Tensor batch = data.encodeBatch({"Every effort moves you"});
     config cfg;
+    cfg.context_length = 612;
     gpt2mhl gpt2Mhl(cfg);
 
     auto out = gpt2Mhl(batch);
@@ -512,14 +516,105 @@ TEST_CASE("PreTrainingOnunlabledData")
 
 
 }
+torch::Tensor generate_with_temperature(gpt2mhl &model,
+    torch::Tensor &idx,
+    int max_new_tokens,
+    int context_size,
+    int top_k= 0,
+    float temperature = 0.0,
+    int eos_id = -1)
+{
+ for (int64_t i = 0; i < max_new_tokens; ++i)
+     {
+        // idx_cond = idx[:, -context_size:]
+        int64_t seq_len = idx.size(1);
+        int64_t start_idx = std::max<int64_t>(0, seq_len - context_size);
+        torch::Tensor idx_cond = idx.slice(/*dim=*/1, /*start=*/start_idx);
 
+        torch::Tensor logits;
+        {
+            // with torch.no_grad():
+            torch::NoGradGuard no_grad;
+            logits = model(idx_cond);
+        }
 
+        // logits = logits[:, -1, :]
+        logits = logits.select(/*dim=*/1, /*index=*/-1);
+
+        // New: Filter logits with top_k sampling
+        if (top_k > 0) {
+            // Keep only top_k values
+            auto topk_res = torch::topk(logits, top_k);
+            torch::Tensor top_logits = std::get<0>(topk_res);
+
+            // min_val = top_logits[:, -1]
+            torch::Tensor min_val = top_logits.select(/*dim=*/-1, /*index=*/-1).unsqueeze(1);
+
+            logits = torch::where(
+                logits < min_val,
+                torch::full_like(logits, -std::numeric_limits<float>::infinity()),
+                logits
+            );
+        }
+
+        torch::Tensor idx_next;
+
+        // New: Apply temperature scaling
+        if (temperature > 0.0) {
+            logits = logits / temperature;
+
+            // numerical stability tip
+            auto max_res = logits.max(/*dim=*/-1, /*keepdim=*/true);
+            logits = logits - std::get<0>(max_res);
+
+            // Apply softmax to get probabilities
+            torch::Tensor probs = torch::softmax(logits, /*dim=*/-1);
+
+            // Sample from the distribution
+            idx_next = torch::multinomial(probs, /*num_samples=*/1);
+        } else
+        {
+            // Otherwise same as before: get idx of the vocab entry with the highest logits value
+            idx_next = torch::argmax(logits, /*dim=*/-1, /*keepdim=*/true);
+        }
+
+        // Stop generating early if end-of-sequence token is encountered
+        if (eos_id >= 0) {
+            if (idx_next.item<int64_t>() == eos_id) {
+                break;
+            }
+        }
+
+        // Same as before: append sampled index to the running sequence
+        idx = torch::cat({idx, idx_next}, /*dim=*/1);
+    }
+
+    return idx;
+}
+TEST_CASE("TrainingSessionWithTemperature")
+{
+    torch::Device device = torch::kCPU;
+    PreparedData data(std::string(DATASETS_DIR) + "gpt2.tiktoken");
+    config cfg;
+    gpt2mhl gpt2Mhl(cfg);
+    gpt2Mhl->to(device);
+
+    //Text text(std::string(DATASETS_DIR) + "the-verdict.txt");
+    //text.printText(0,99);
+    torch::manual_seed(123);
+    torch::Tensor idx = data.textToTokenIds("every effort moves you").to(device);
+    auto generateTokes = generate_with_temperature(gpt2Mhl,idx,15,cfg.context_length,25,0.8);
+    std::string text = data.tokenIdsToText(generateTokes);
+    std::cout<<text<<std::endl;
+}
 TEST_CASE("TrainingSession")
 {
+    torch::Device device = torch::kCPU;//torch::kCUDA; memory become problem here
     PreparedData data(std::string(DATASETS_DIR) + "gpt2.tiktoken");
     torch::Tensor batch = data.encodeBatch({"Every effort moves you"});
     config cfg;
     gpt2mhl gpt2Mhl(cfg);
+    gpt2Mhl->to(device);
 
     Text text(std::string(DATASETS_DIR) + "the-verdict.txt");
     text.printText(0,99);
@@ -535,7 +630,7 @@ TEST_CASE("TrainingSession")
     std::cout << "Train length: " << train_data.size() << std::endl;
     std::cout << "Val length: " << val_data.size() << std::endl;
     torch::manual_seed(123);
-    torch::Device device = torch::kCPU;
+
     auto trainLoader = createDataLoaderV2(train_data, data.getTokenizer(), 2 /*batch_Size*/, cfg.context_length, cfg.context_length);
     auto valLoader = createDataLoaderV2(val_data, data.getTokenizer(), 2 /*batch_Size*/, cfg.context_length, cfg.context_length);
 
@@ -546,5 +641,6 @@ TEST_CASE("TrainingSession")
         valLoader,
         optimizer,
         device, num_epochs, 5, 5, "every effort moves you",data.getTokenizer());
-
 }
+
+
