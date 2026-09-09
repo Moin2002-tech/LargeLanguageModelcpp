@@ -30,3 +30,7 @@ Makefile
 
 # Binary
 LargeLanguageModelcpp
+
+# Large dataset files (not suitable for git)
+datasets/gpt2-small-124M.pth
+datasets/gpt2-small-124M.torchscript

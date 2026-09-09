@@ -84,6 +84,8 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/src/gpt2mhl.cpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/mhl.cpp
         src/TrainedGpt/preTrainingOnunlabled.cpp
+        src/TrainedGpt/WeightLoading/WeightLoading.cpp
+        include/TrainedGpt/generateText.hpp
 )
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
