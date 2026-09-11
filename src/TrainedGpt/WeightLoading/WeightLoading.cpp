@@ -21,7 +21,7 @@ TEST_CASE("WeightLoading")
     BASE_CONFIG.vocab_size = 50257;
     BASE_CONFIG.context_length = 1024;
     PreparedData data(std::string(DATASETS_DIR) + "gpt2.tiktoken");
-
+    torch::manual_seed(123);
     gpt2mhl model(BASE_CONFIG);
 
     torch::jit::script::Module container =
@@ -110,7 +110,7 @@ TEST_CASE("WeightLoading")
     // print raw ids before attempting to decode
 
 std::cout << std::endl;
-    auto tokenIds = generate_with_temperature(model, idx, 15, BASE_CONFIG.context_length, 1, 1.5);
+    auto tokenIds = generate_with_temperature(model, idx, 30, BASE_CONFIG.context_length, 1, 1.5);
     // print raw ids before attempting to decode
     auto ids_cpu = tokenIds.to(torch::kCPU);
     std::cout << "raw token ids: ";

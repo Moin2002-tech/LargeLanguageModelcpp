@@ -205,6 +205,80 @@ ls external/libtorch/
 # → include/  lib/  share/
 ```
 
+## Gutenberg Dataset
+
+This project includes a curated subset of Project Gutenberg books for training language models.
+
+### Downloading the Dataset
+
+A Python script is provided to download classic literature from Project Gutenberg until reaching a target size (default: 100MB).
+
+```bash
+cd datasets/guttenberg/gutenberg
+python3 download_small_batch.py -s 100
+```
+
+This downloads approximately 100MB of public domain books including:
+- Classic novels (War and Peace, Pride and Prejudice, Moby Dick, etc.)
+- Historical documents (King James Bible, Communist Manifesto)
+- Poetry (Leaves of Grass)
+
+**Files are stored in:** `datasets/guttenberg/gutenberg/data/raw/`
+
+### Requirements
+
+```bash
+pip install -r datasets/guttenberg/gutenberg/requirements.txt
+```
+
+Required system tools:
+- `wget` - for downloading books
+- Python 3.8+
+
+### Processing the Data
+
+To clean Gutenberg headers and tokenize:
+
+```bash
+cd datasets/guttenberg/gutenberg
+python3 process_data.py
+```
+
+This creates:
+- `data/text/` - books with headers stripped
+- `data/tokens/` - tokenized text (one token per line)
+- `data/counts/` - word frequency counts
+
+### Using in C++
+
+The raw text files can be loaded directly in C++ for training:
+
+```cpp
+// Example: Load all books from data/raw/
+std::vector<std::string> load_books(const std::string& raw_dir) {
+    std::vector<std::string> books;
+    for (const auto& entry : std::filesystem::directory_iterator(raw_dir)) {
+        if (entry.path().extension() == ".txt") {
+            std::ifstream file(entry.path());
+            std::string content((std::istreambuf_iterator<char>(file)),
+                                std::istreambuf_iterator<char>());
+            books.push_back(content);
+        }
+    }
+    return books;
+}
+```
+
+### Adding More Books
+
+Edit `download_small_batch.py` and add more PG IDs to the `BOOKS_TO_DOWNLOAD` list, or use the original script:
+
+```bash
+python3 get_data.py  # Downloads entire Gutenberg corpus (very large!)
+```
+
+---
+
 ## Building
 
 ### Using CMake with vcpkg (Recommended)
