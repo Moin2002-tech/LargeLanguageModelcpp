@@ -196,7 +196,7 @@ LibTorch is **excluded from git** (see `.gitignore`) because it's several gigaby
 
 # 2. Download and extract into external/
 cd external/
-wget https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.1.0%2Bcu121.zip
+wget https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.11.0%2Bcu121.zip
 unzip libtorch-cxx11-abi-shared-with-deps-2.1.0+cu121.zip
 # Now external/libtorch/ exists
 
