@@ -28,7 +28,7 @@ private:
     torch::nn::Dropout dropout_shortcut{nullptr};
 
 public:
-    TransformerBlockV4Impl(
+    explicit TransformerBlockV4Impl(
         config &cfg);
 
     torch::Tensor forward(torch::Tensor x, bool use_Cache = false);

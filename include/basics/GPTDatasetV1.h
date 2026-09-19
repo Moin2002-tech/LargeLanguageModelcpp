@@ -13,7 +13,11 @@ private:
     std::vector<torch::Tensor> target_ids;
 
 public:
-    GPTDatasetV1(const std::string& txt, std::shared_ptr<tiktoken::Encoding> tokenizer, int max_length, int stride) {
+    GPTDatasetV1(const std::string& txt,
+        const std::shared_ptr<tiktoken::Encoding> tokenizer,
+        int max_length,
+        int stride)
+    {
         // Tokenize the entire text
         auto token_ids = tokenizer->encode(txt, {"<|endoftext|>"});
 

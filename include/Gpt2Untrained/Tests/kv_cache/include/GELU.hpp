@@ -11,7 +11,7 @@
 class GELUImpl : public torch::nn::Module
 {
 public:
-    GELUImpl() { }
+    explicit  GELUImpl() { }
     torch::Tensor forward(torch::Tensor x);
 
 };TORCH_MODULE(GELU);

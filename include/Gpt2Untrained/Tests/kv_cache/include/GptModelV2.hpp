@@ -20,7 +20,7 @@ private:
     int current_ptr = 0;
     int kv_window_size = cfg.kv_window_size;
 public:
-    GptModelV2Impl(config &config);
+   explicit GptModelV2Impl(config &config);
     torch::Tensor forward(torch::Tensor x, bool use_cache);
     void reset_kv_cache();
 

@@ -11,8 +11,8 @@
 class GELUV3Impl : public torch::nn::Module
 {
 public:
-    GELUV3Impl() { }
-    torch::Tensor forward(torch::Tensor x) {
+    explicit GELUV3Impl() {};
+    torch::Tensor forward(torch::Tensor x){
         // Use plain double constants so they auto-broadcast to the tensor's
         // device (torch::tensor would create a CPU tensor and cause a
         // CUDA/CPU mismatch when running on GPU).

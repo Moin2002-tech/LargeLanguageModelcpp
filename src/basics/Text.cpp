@@ -18,7 +18,11 @@ Text::Text(const std::filesystem::path &path)
 }
 
 Text::~Text() {
-    metaData.textFile.close();
+    try {
+        close();
+    } catch (...) {
+        // Ignore or log error silently during unwinding
+    }
 }
 
 void Text::printText(unsigned int indexFrom,unsigned int indexTo)

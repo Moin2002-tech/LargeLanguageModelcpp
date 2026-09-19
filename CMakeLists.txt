@@ -86,6 +86,8 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         src/TrainedGpt/preTrainingOnunlabled.cpp
         src/TrainedGpt/WeightLoading/WeightLoading.cpp
         include/TrainedGpt/generateText.hpp
+        include/TrainedGpt/TrainingGuttenbergDatasets/prepairDatasets.hpp
+        src/TrainedGpt/TrainingGuttenbergDatasets/prepairDatasets.cpp
 )
 
 target_include_directories(LargeLanguageModelcpp PRIVATE

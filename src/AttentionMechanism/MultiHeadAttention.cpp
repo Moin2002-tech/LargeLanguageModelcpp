@@ -13,7 +13,7 @@
 MultiHeadAttentionMechanismImpl::MultiHeadAttentionMechanismImpl(uint d_in, uint d_out,
         int64_t context_length,
         uint numHeads,
-        double dropout,
+        double dropout_,
         bool qkv_bias) :
         d_in(d_in),
         d_out(d_out),
@@ -30,7 +30,7 @@ MultiHeadAttentionMechanismImpl::MultiHeadAttentionMechanismImpl(uint d_in, uint
         W_value =  register_module("W_value", torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias)));
         W_keys =  register_module("W_keys", torch::nn::Linear(torch::nn::LinearOptions(d_in, d_out).bias(qkv_bias)));
         out_proj = register_module("out_proj", torch::nn::Linear(torch::nn::LinearOptions(d_out, d_out)));
-        dropout_layer =  register_module("dropout", torch::nn::Dropout(dropout));
+        dropout_layer =  register_module("dropout", torch::nn::Dropout(dropout_));
         mask = register_buffer("mask",torch::triu(torch::ones({context_length,context_length}),1));
 }
 
@@ -72,13 +72,13 @@ torch::Tensor MultiHeadAttentionMechanismImpl::forward(torch::Tensor x)
     // Dropout
     attn_weights = dropout_layer->forward(attn_weights);
 
-    // context_vec: (b, num_heads, num_tokens, head_dim)
+
     auto context_vec = attn_weights.matmul(values);
 
-    // Transpose back: (b, num_heads, num_tokens, head_dim) -> (b, num_tokens, num_heads, head_dim)
+
     context_vec = context_vec.transpose(1, 2);
 
-    // Combine heads: (b, num_tokens, num_heads * head_dim) = (b, num_tokens, d_out)
+
     context_vec = context_vec.contiguous().view({b, num_tokens, (int64_t)d_out});
 
     // Optional output projection
@@ -99,7 +99,7 @@ TEST_CASE("MultiHeadAttentionMechanism") {
    auto batch = torch::stack({input,input}, 0);
     auto context_length =  batch.size(1);
     double dropout = 0.0;
-   uint d_in = input.size(1);
+   uint d_in = static_cast<uint>(input.size(1));
     uint d_out = 2;
     torch::manual_seed(123);
     MultiHeadAttentionMechanism model(d_in, d_out,  context_length,2, dropout ,false);

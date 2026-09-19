@@ -11,7 +11,7 @@ Gpt2ModelV3Impl::Gpt2ModelV3Impl(config &cfg) : cfg(cfg)
     tok_emb = register_module("tok_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(cfg.vocab_size,cfg.emb_dim)));
     pos_emb = register_module("pos_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(cfg.context_length,cfg.emb_dim)));
     dro_emb = register_module("dro_emb",torch::nn::Dropout(cfg.drop_rate));
-    trf_block = register_module("trfBlock", [this, &cfg]()
+    trf_block = register_module("trfBlock", [ &cfg]()
         {
             torch::nn::ModuleList seq;
             for (int i = 0; i < cfg.n_layer; ++i) {
@@ -28,7 +28,7 @@ Gpt2ModelV3Impl::Gpt2ModelV3Impl(config &cfg) : cfg(cfg)
 torch::Tensor Gpt2ModelV3Impl::forward(torch::Tensor x, bool use_Cache)
 {
     auto seq_length = x.size(1);
-    auto batch_size = x.size(0);
+    //auto batch_size = x.size(0);
 
     auto tok_embeds = tok_emb(x);
     torch::Tensor pos_ids;

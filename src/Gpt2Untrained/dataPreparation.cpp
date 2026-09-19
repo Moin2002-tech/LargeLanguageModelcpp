@@ -63,7 +63,7 @@ torch::Tensor PreparedData::encodeBatch(const std::vector<std::string>& texts, i
     return batch;
 }
 
-std::string PreparedData::decode(torch::Tensor tokenIds) const {
+std::string PreparedData::decode(torch::Tensor tokenIds) {
     // Squeeze batch dim if present: [1, n] -> [n]
     if (tokenIds.dim() == 2 && tokenIds.size(0) == 1) {
         tokenIds = tokenIds.squeeze(0);
@@ -81,8 +81,7 @@ std::string PreparedData::decode(torch::Tensor tokenIds) const {
     return tokenizer->decode(ids);
 }
 
-torch::Tensor PreparedData::textToTokenIds(const std::string& text) const {
-    // Mirror Python: tokenizer.encode(text, allowed_special={'<|endoftext|>'})
+torch::Tensor PreparedData::textToTokenIds(std::string text){
     std::set<std::string> allowed_special = {"<|endoftext|>"};
     auto tokenIds = tokenizer->encode(text, allowed_special);
 
@@ -95,7 +94,7 @@ torch::Tensor PreparedData::textToTokenIds(const std::string& text) const {
     return torch::tensor(ids, torch::kInt64).unsqueeze(0);
 }
 
-std::string PreparedData::tokenIdsToText(torch::Tensor tokenIds) const {
+std::string PreparedData::tokenIdsToText(torch::Tensor tokenIds){
     // Mirror Python: flat = token_ids.squeeze(0); tokenizer.decode(flat.tolist())
     // Squeeze batch dim if present: [1, n] -> [n]
     if (tokenIds.dim() == 2 && tokenIds.size(0) == 1) {

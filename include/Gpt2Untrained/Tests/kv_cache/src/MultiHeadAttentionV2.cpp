@@ -7,14 +7,15 @@
 
 
 
-MultiHeadAttentionV2Impl::MultiHeadAttentionV2Impl(uint d_in,
+MultiHeadAttentionV2Impl::MultiHeadAttentionV2Impl(
+    uint d_in,
     uint d_out,
     int64_t context_length,
     double dropout,
     uint numHeads,
     bool qkv_bias,
-    int64_t max_seq_length,
-    int64_t window_size)
+    int64_t max_seq_length_,
+    int64_t window_size_)
 :
 d_in(d_in),
 d_out(d_out),
@@ -22,8 +23,8 @@ numHeads(numHeads),
 context_length(context_length),
 dropout(dropout),
 qkv_bias(qkv_bias),
-max_seq_length(max_seq_length > 0 ? max_seq_length : context_length),
-window_size(window_size > 0 ? window_size : this->max_seq_length)
+max_seq_length(max_seq_length_ > 0 ? max_seq_length_ : context_length),
+window_size(window_size_ > 0 ? window_size_ : this->max_seq_length)
 {
     headDim =d_out / numHeads;
     if (d_out % numHeads != 0)

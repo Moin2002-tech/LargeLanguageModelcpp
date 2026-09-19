@@ -14,7 +14,7 @@ struct config {
      int emb_dim = 768 ;      // Embedding dimension
      int n_heads = 12  ;      //Number of attention heads
      int n_layer =  12 ;      // Number of layers
-     float drop_rate =0.1;      // # Dropout rate
+     float drop_rate = static_cast<float>(0.1);      // # Dropout rate
      bool qkv_bias = false;     //  # Query-Key-Value bias
     int kv_window_size = 1024;
     int n_kv_groups = 2;

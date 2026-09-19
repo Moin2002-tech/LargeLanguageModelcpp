@@ -4,7 +4,7 @@
 
 #include "basics/SimpleTokenizerV1.h"
 
-SimpleTokenizerV1::SimpleTokenizerV1(const std::unordered_map<std::string, int>& vocab)
+SimpleTokenizerV1::SimpleTokenizerV1(const std::unordered_map<std::string, int, StringHash, std::equal_to<>>& vocab)
     : str_to_int(vocab), token_regex(R"(([,.:;?_!"()\']|--|\s))")
 {
     // Build the reverse mapping from int to string
@@ -24,24 +24,32 @@ std::vector<int> SimpleTokenizerV1::encode(const std::string& text) {
     for (; it != end; ++it) {
         std::string token = it->str();
         // Only add non-empty tokens after stripping
-        if (!token.empty()) {
-            // Strip whitespace from the token
-            size_t start = token.find_first_not_of(" \t\n\r");
-            if (start != std::string::npos) {
-                size_t end_pos = token.find_last_not_of(" \t\n\r");
-                token = token.substr(start, end_pos - start + 1);
-                if (!token.empty()) {
-                    preprocessed.push_back(token);
-                }
-            }
+        if (token.empty())
+        {
+            continue;
         }
+            // Strip whitespace from the token
+        size_t start = token.find_first_not_of(" \t\n\r");
+        if (start == std::string::npos)
+        {
+            continue;
+        }
+
+        size_t end_pos = token.find_last_not_of(" \t\n\r");
+        token = token.substr(start, end_pos - start + 1);
+
+        if (!token.empty()) {
+            preprocessed.push_back(token);
+        }
+
     }
     
     // Convert tokens to IDs
-    for (const auto& token : preprocessed) {
-        auto it = str_to_int.find(token);
-        if (it != str_to_int.end()) {
-            ids.push_back(it->second);
+    for (const auto& token : preprocessed)
+    {
+        auto iteration = str_to_int.find(token);
+        if (iteration != str_to_int.end()) {
+            ids.push_back(iteration->second);
         } else {
             // Handle unknown tokens - you might want to throw an exception or use a special token
             std::cerr << "Warning: Unknown token '" << token << "'" << std::endl;

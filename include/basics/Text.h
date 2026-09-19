@@ -21,14 +21,18 @@ class Text
 private:
     textMetaData metaData;
 public:
-    Text(const std::filesystem::path &path);
+    explicit Text(const std::filesystem::path &path);
     ~Text();
 
     void printText(unsigned int indexFrom,unsigned int indexTo);
 
-    std::string getText()
+    std::string getText() const
     {
         return metaData.textRaw;
+    }
+
+    void close() {
+        metaData.textFile.close();
     }
 };
 

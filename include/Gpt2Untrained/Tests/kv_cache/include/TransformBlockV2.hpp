@@ -24,7 +24,7 @@ private:
 
 public:
 
-    TransformBlockV2Impl(config &cfg);
+    explicit TransformBlockV2Impl(config &cfg);
     torch::Tensor forward(torch::Tensor x, bool use_cache = false);
     void reset_cache();   // wraps att->reset_cache() from outside
 

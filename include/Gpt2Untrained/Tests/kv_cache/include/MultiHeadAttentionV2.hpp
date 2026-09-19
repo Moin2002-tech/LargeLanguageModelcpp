@@ -31,7 +31,7 @@ private:
     torch::Tensor cache_k;
     torch::Tensor cache_v;
 public:
-    MultiHeadAttentionV2Impl(uint d_in,
+    explicit MultiHeadAttentionV2Impl(uint d_in,
     uint d_out,
     int64_t context_length,
     double dropout,

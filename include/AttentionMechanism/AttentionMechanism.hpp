@@ -11,7 +11,7 @@
 
 class SelfAttentionMechanismV2Impl : public torch::nn::Module {
 private:
-    uint d_in, d_out;
+    uint d_in = 0, d_out = 0;
     torch::nn::Linear W_query{nullptr}, W_key{nullptr}, W_value{nullptr};
 
 public:
@@ -22,7 +22,7 @@ TORCH_MODULE(SelfAttentionMechanismV2);
 
 class SelfAttentionMechanismV3Impl : public torch::nn::Module {
 private:
-    uint d_in, d_out;
+    uint d_in = 0, d_out = 0;
     bool qkv_bias;
     torch::nn::Linear W_query{nullptr}, W_key{nullptr}, W_value{nullptr};
 public:

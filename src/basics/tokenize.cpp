@@ -9,7 +9,7 @@
 
 
 
-std::vector<std::string> Tokenize::tokenize(Text &textObj, const std::regex &regex)
+std::vector<std::string> Tokenize::tokenize(const Text& textObj, const std::regex &regex)
 {
     // Get text from Text object
     text = textObj.getText();

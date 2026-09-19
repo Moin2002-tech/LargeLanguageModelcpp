@@ -20,13 +20,12 @@ torch::Tensor SelfAttentionMechanismV2Impl::forward(torch::Tensor x)
     auto queries = W_query->forward(x);
     auto values  = W_value->forward(x);
 
-    // attn_scores = queries @ keys.T
     auto attn_scores = queries.matmul(keys.transpose(0, 1));
 
-    // attn_weights = softmax(attn_scores / sqrt(d_out), dim=-1)
+
     auto attn_weights = torch::softmax(attn_scores / std::sqrt(static_cast<double>(d_out)), /*dim=*/1);
 
-    // context_vec = attn_weights @ values
+
     auto context_vec = attn_weights.matmul(values);
     return context_vec;
 }
@@ -39,7 +38,7 @@ TEST_CASE("SelfAttentionV2")
                                           {0.77, 0.25, 0.10},//one
                                           {0.05, 0.80, 0.55}//step
       });
-    uint d_in = input.size(1);
+    uint d_in = static_cast<uint>(input.size(1));
     uint d_out = 2;
     bool qkv_bias = false;
     torch::manual_seed(789);
@@ -76,7 +75,7 @@ TEST_CASE("SelfAttentionV3") {
                                           {0.05, 0.80, 0.55}//step
       });
 
-    uint d_in = input.size(1);
+    uint d_in = static_cast<uint>(input.size(1));
     uint d_out = 2;
     bool qkv_bias = false;
     torch::manual_seed(789);

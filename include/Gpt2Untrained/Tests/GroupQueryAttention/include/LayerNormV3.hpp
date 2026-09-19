@@ -10,10 +10,10 @@ class LayerNormV3Impl : public torch::nn::Module
 {
 private:
     int emb_dim;
-    float eps = 1e-5;
+    float eps = static_cast<float>(1e-5);
     torch::Tensor scale,shift;
 public:
-    LayerNormV3Impl(int emb_dim);
+    explicit LayerNormV3Impl(int emb_dim);
     torch::Tensor forward(torch::Tensor x);
 
 };TORCH_MODULE(LayerNormV3);

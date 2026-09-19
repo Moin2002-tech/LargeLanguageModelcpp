@@ -22,7 +22,7 @@ private:
 
 public:
 
-    Gpt2ModelV3Impl(config &cfg);
+    explicit Gpt2ModelV3Impl(config &cfg);
     torch::Tensor forward(torch::Tensor x,bool use_Cache = false);
     void reset_kv_cache();
     int64_t getContextLength() const { return pos_emb->options.num_embeddings(); }

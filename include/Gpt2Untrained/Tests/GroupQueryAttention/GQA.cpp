@@ -117,7 +117,7 @@ PreparedData data(std::string(DATASETS_DIR) + "gpt2.tiktoken");
     cfg.emb_dim       = 768;     // Embedding dimension
     cfg.n_heads       = 12;      // Number of attention heads
     cfg.n_layer       = 12;      // Number of layers
-    cfg.drop_rate     = 0.1;     // Dropout rate
+    cfg.drop_rate     = static_cast<float>(0.1);     // Dropout rate
     cfg.qkv_bias      = false;   // Query-Key-Value bias
     cfg.kv_window_size = 1024;   // KV cache window size
 

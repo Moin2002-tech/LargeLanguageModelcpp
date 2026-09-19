@@ -15,7 +15,7 @@ private:
     config cfg;
     torch::nn::Sequential layer{nullptr};
 public:
-    FeedForwardImpl(const config &cfg) : cfg(cfg)
+    explicit FeedForwardImpl(const config &cfg) : cfg(cfg)
     {
         layer= register_module("layer", torch::nn::Sequential(torch::nn::Linear(cfg.emb_dim,4 * cfg.emb_dim),
                                        torch::nn::GELU(),
@@ -38,7 +38,7 @@ private:
     torch::nn::Dropout drop_shortcut{nullptr};
 
 public:
-    TransformerBlockImpl(const config &cfg);
+    explicit TransformerBlockImpl(const config &cfg);
     torch::Tensor forward(torch::Tensor x);
 };TORCH_MODULE(TransformerBlock);
 

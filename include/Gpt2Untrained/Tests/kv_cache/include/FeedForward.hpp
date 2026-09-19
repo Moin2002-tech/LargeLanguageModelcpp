@@ -13,7 +13,7 @@ private:
     config cfg;
     torch::nn::Sequential layers;
 public:
-    FeedForwardV2Impl(config &cfg);
+    explicit FeedForwardV2Impl(config &cfg);
     torch::Tensor forward(torch::Tensor x);
 };TORCH_MODULE(FeedForwardV2);
 

@@ -25,12 +25,12 @@ public:
 
     // Decode a flat tensor of token IDs back to a string
     // Equivalent to: tokenizer.decode(tokens.squeeze(0).tolist())
-    std::string decode(torch::Tensor tokenIds) const;
+    std::string decode(torch::Tensor tokenIds);
 
     // Mirror Python text_to_token_ids:
     // encoded = tokenizer.encode(text, allowed_special={'<|endoftext|>'})
     // return torch.tensor(encoded).unsqueeze(0)  -> [1, seq_len]
-    torch::Tensor textToTokenIds(const std::string& text) const;
+    torch::Tensor textToTokenIds(std::string text);
 
     //get Tokenizer
     auto getTokenizer() const  {
@@ -39,16 +39,15 @@ public:
     auto getTokenizer()  {
         return tokenizer;
     }
-    // Mirror Python token_ids_to_text:
-    // flat = token_ids.squeeze(0); return tokenizer.decode(flat.tolist())
-    std::string tokenIdsToText(torch::Tensor tokenIds) const;
+
+    std::string tokenIdsToText(torch::Tensor tokenIds) ;
 
     torch::Tensor generateTextSimple(
     Gpt2& model,
     torch::Tensor idx,
     int max_new_tokens,
     int context_size
-) {
+) const {
         for (int step = 0; step < max_new_tokens; ++step) {
             // Crop context if it exceeds the supported context size
             // idx.size(1) is int64_t, so cast 0 to match

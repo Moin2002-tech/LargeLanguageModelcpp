@@ -17,15 +17,15 @@ private:
     std::vector<std::string> result;
     std::string text;
 public:
-    Tokenize(){}
-    ~Tokenize(){}
-    std::vector<std::string> tokenize(Text &textObj, const std::regex &regex);
-    std::string getText()
+    Tokenize() = default;
+    ~Tokenize() = default;
+    std::vector<std::string> tokenize(const Text &textObj, const std::regex &regex);
+    std::string getText() const
     {
         return text;
     }
 
-    std::vector<std::string> getTokens()
+    std::vector<std::string> getTokens() const
     {
         return result;
     }
