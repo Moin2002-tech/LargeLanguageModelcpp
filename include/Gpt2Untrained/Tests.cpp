@@ -10,7 +10,14 @@
 
 
 
-TEST_CASE("untrainedModelTests") {
+TEST_CASE("untrainedModelTests")
+{
+    torch::Device device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
+    torch::Tensor tensor = torch::zeros({1, 2, 3}, device);
+    std::cout << "Tensor shape: " << tensor.sizes() << std::endl;
+    std::cout<<tensor<<"\n";
+    std::cout << "Device is available: " << device << std::endl;
+
     PreparedData data(MODELS_DIR "/gpt2.tiktoken");
 
     // Encode a starting prompt into a batch tensor [1, n_tokens]

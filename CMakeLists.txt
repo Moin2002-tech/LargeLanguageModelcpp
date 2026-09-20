@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(CMAKE_CXX_STANDARD 17)
 
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(TORCH_CUDA_ARCH_LIST "7.5")
+
+set(CUDAToolkit_ROOT "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.8")
+set(CUDA_TOOLKIT_ROOT_DIR "${CUDAToolkit_ROOT}")
 # Configure doctest
 if(MSVC)
     add_compile_options(/utf-8)
@@ -24,6 +30,7 @@ find_package(CURL CONFIG REQUIRED)
 
 set(CMAKE_TOOLCHAIN_FILE "C:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain")
 add_definitions(-DMODELS_DIR="${CMAKE_SOURCE_DIR}/datasets")
+
 add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/basics/Text.h
         src/basics/Text.cpp
@@ -33,8 +40,6 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         src/basics/SimpleTokenizerV1.cpp
         include/basics/GPTDatasetV1.h
         src/basics/GPTDatasetV1.cpp
-        external/third_party/doctest.hpp
-        external/third_party/doctest.hpp
         external/third_party/doctest.cpp
         src/attentionMechanism.cpp
         include/AttentionMechanism/AttentionMechanism.hpp
@@ -86,7 +91,8 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/src/TransformerBlockV5.cpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/include/gpt2mhl.hpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/src/gpt2mhl.cpp
-        include/Gpt2Untrained/Tests/MultiHeadLatent/mhl.cpp)
+        include/Gpt2Untrained/Tests/MultiHeadLatent/mhl.cpp
+        external/third_party/doctest.hpp)
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/include"
@@ -109,8 +115,11 @@ target_link_libraries(LargeLanguageModelcpp PRIVATE
 
         "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch.lib"
         "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch_cpu.lib"
+        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch_cuda.lib"
+
+        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/c10_cuda.lib"
         "${CMAKE_SOURCE_DIR}/external/libtorch/lib/c10.lib"
-        "${CMAKE_SOURCE_DIR}/external/libtorch/lib/fmt.lib"
+
 
 )
 
@@ -125,19 +134,16 @@ set_target_properties(LargeLanguageModelcpp PROPERTIES
         BUILD_WITH_INSTALL_RPATH TRUE
         MAP_IMPORTED_CONFIG_DEBUG "DEBUG;RELEASE"
 )
-
+if(MSVC)
+    target_link_options(LargeLanguageModelcpp PRIVATE
+            "/INCLUDE:?warp_size@cuda@at@@YAHXZ")
+endif()
 # Copy required DLLs next to the executable (RPATH does not work on Windows)
 if(WIN32)
+    file(GLOB TORCH_DLLS "${CMAKE_SOURCE_DIR}/external/libtorch/lib/*.dll")
     add_custom_command(TARGET LargeLanguageModelcpp POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch.dll"
-            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch_cpu.dll"
-            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/c10.dll"
-            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch_global_deps.dll"
-            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/uv.dll"
-            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/shm.dll"
-            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/libiomp5md.dll"
-            "${CMAKE_SOURCE_DIR}/external/libtorch/lib/libiompstubs5md.dll"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${TORCH_DLLS}
             "$<TARGET_FILE_DIR:LargeLanguageModelcpp>"
     )
 endif()
