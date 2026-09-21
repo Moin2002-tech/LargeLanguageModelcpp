@@ -4,7 +4,7 @@
 #include"../external/third_party/doctest.hpp"
 #include<torch/torch.h>
 #include<torch/nn.h>
-
+using uint = unsigned int;
 class AttentionMechanismV1Impl : public torch::nn::Module
 {
 private:

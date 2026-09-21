@@ -11,7 +11,7 @@
 
 #include "CausalAttentionMechanism.hpp"
 #include<GPT2LargeLanguageModel/util.hpp>
-
+using uint = unsigned int;
 
 
 class MultiHeadAttentionMechanismImpl : public torch::nn::Module {

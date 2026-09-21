@@ -7,7 +7,7 @@
 
 #include<torch/torch.h>
 #include<cmath>
-
+using uint = unsigned int;
 class CausalAttentionMechanismImpl : public torch::nn::Module {
 private:
   uint d_in, d_out;

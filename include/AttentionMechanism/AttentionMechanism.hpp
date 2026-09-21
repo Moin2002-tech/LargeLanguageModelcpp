@@ -8,7 +8,7 @@
 #include<iostream>
 #include<torch/torch.h>
 #include<tiktoken.hpp>
-
+using uint = unsigned int;
 class SelfAttentionMechanismV2Impl : public torch::nn::Module {
 private:
     uint d_in = 0, d_out = 0;

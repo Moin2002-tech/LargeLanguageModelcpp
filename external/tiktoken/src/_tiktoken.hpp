@@ -28,7 +28,17 @@
 #define PCRE2_CODE_UNIT_WIDTH 8
 #endif
 #include <pcre2.h>
-#include <utf8.h>
+//#include <utf8.h>
+#if defined(__has_include)
+#  if __has_include(<utf8cpp/utf8.h>)
+#    include <utf8cpp/utf8.h>
+#  else
+#    include <utf8.h>
+#  endif
+#else
+#  include <utf8.h>
+#endif
+
 
 // ============================================================================
 // SIMD Detection and Intrinsics

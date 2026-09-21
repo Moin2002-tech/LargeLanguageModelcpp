@@ -5,7 +5,7 @@
 
 #include <Gpt2Untrained/Tests/kv_cache/include/MultiHeadAttentionV2.hpp>
 
-
+using uint = unsigned int;
 
 MultiHeadAttentionV2Impl::MultiHeadAttentionV2Impl(
     uint d_in,
