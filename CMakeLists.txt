@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(TORCH_CUDA_ARCH_LIST "7.5")
 
@@ -24,10 +24,11 @@ add_subdirectory(external/tiktoken)
 find_package(fmt CONFIG REQUIRED)
 find_package(pcre2 CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
+find_package(CUDA REQUIRED)
 
 
 
-
+# provide your custom vcpkg path
 set(CMAKE_TOOLCHAIN_FILE "C:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain")
 add_definitions(-DMODELS_DIR="${CMAKE_SOURCE_DIR}/datasets")
 
@@ -92,7 +93,7 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/include/gpt2mhl.hpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/src/gpt2mhl.cpp
         include/Gpt2Untrained/Tests/MultiHeadLatent/mhl.cpp
-        external/third_party/doctest.hpp)
+)
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/include"
@@ -107,7 +108,7 @@ target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/include"
 )
 
-
+include_directories(${CUDA_INCLUDE_DIRS})
 
 # Link against tiktoken, pcre2, and curl
 target_link_libraries(LargeLanguageModelcpp PRIVATE
@@ -134,6 +135,7 @@ set_target_properties(LargeLanguageModelcpp PROPERTIES
         BUILD_WITH_INSTALL_RPATH TRUE
         MAP_IMPORTED_CONFIG_DEBUG "DEBUG;RELEASE"
 )
+#really important for linking cuda to libtorch
 if(MSVC)
     target_link_options(LargeLanguageModelcpp PRIVATE
             "/INCLUDE:?warp_size@cuda@at@@YAHXZ")

@@ -13,6 +13,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include<c10/cuda/CUDACachingAllocator.h>
 
 /*
  * FLOPs (Floating Point Operations) measure the computational complexity of neural network models.
@@ -222,7 +223,7 @@ TEST_CASE("flopsAnalysis")
         // If previous-model tensors are still referenced, memory_allocated() stays
         // high here — telling us there's a retention leak rather than a HW limit.
         //there is no support in windows for cuda
-        /*
+
         if (device.is_cuda()) {
             c10::cuda::CUDACachingAllocator::emptyCache();
             torch::cuda::synchronize();
@@ -243,7 +244,7 @@ TEST_CASE("flopsAnalysis")
             } catch (const std::exception&) {
                 // ignore — diagnostic only
             }
-        }*/
+        }
 
         std::cout << "\nProcessing " << display_name << "\n";
 
@@ -323,8 +324,9 @@ TEST_CASE("flopsAnalysis")
 
                         // Release the CUDA caching allocator's retained blocks
                         // so subsequent batch-size attempts get more usable memory.
-                        if (device.is_cuda()) {
-                          //  c10::cuda::CUDACachingAllocator::emptyCache();
+                        if (device.is_cuda())
+                        {
+                            c10::cuda::CUDACachingAllocator::emptyCache();
                         }
                     }
                     else
@@ -396,7 +398,7 @@ TEST_CASE("flopsAnalysis")
                         // Release cached blocks so the next (smaller) batch attempt
                         // doesn't inherit a nearly-full allocator.
                         if (device.is_cuda()) {
-                          //  c10::cuda::CUDACachingAllocator::emptyCache();
+                           c10::cuda::CUDACachingAllocator::emptyCache();
                         }
                     }
                     else
@@ -425,7 +427,7 @@ TEST_CASE("flopsAnalysis")
         // Without this, the weights from this model stay cached in the allocator
         // and eat into the GPU budget of the next, larger model (e.g. gpt2-xl).
         if (device.is_cuda()) {
-         //   c10::cuda::CUDACachingAllocator::emptyCache();
+          c10::cuda::CUDACachingAllocator::emptyCache();
         }
     }
 }
