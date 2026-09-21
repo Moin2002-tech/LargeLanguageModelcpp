@@ -7,7 +7,7 @@ set(TORCH_CUDA_ARCH_LIST "7.5")
 
 # Platform-specific setup (toolchain, CUDA, compiler options)
 
-if(WIN32)
+if(MSVC)
     set(CUDAToolkit_ROOT "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.8")
     set(CUDA_TOOLKIT_ROOT_DIR "${CUDAToolkit_ROOT}")
     set(CMAKE_TOOLCHAIN_FILE "C:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain")
@@ -21,14 +21,25 @@ endif()
 
 project(LargeLanguageModelcpp)
 
-# Add tiktoken as a subdirectory
-add_subdirectory(external/tiktoken)
-
+# Third-party packages must be located *before* the tiktoken subproject runs:
+# the CONFIG packages define the authoritative imported targets
+# (pcre2::pcre2-8-shared, CURL::libcurl_shared, PCRE2::8BIT, ...) with absolute
+# library paths. tiktoken's `if(NOT TARGET PCRE2::8BIT)` guard then reuses the
+# vcpkg target instead of building its own from the bare pkg-config name, which
+# the MSVC linker cannot resolve (LNK1181: cannot open input file 'pcre2-8.lib').
 find_package(fmt CONFIG REQUIRED)
 find_package(pcre2 CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
+
+# Add tiktoken as a subdirectory
+add_subdirectory(external/tiktoken)
+
 if(WIN32)
-    find_package(CUDA REQUIRED)
+    # 1. Define the CUDA toolkit root path FIRST
+    set(CUDAToolkit_ROOT "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.8")
+
+    # 2. Call find_package using the modern CUDAToolkit package name
+    find_package(CUDAToolkit REQUIRED)
 endif()
 
 add_definitions(-DDATASETS_DIR="${CMAKE_SOURCE_DIR}/datasets/")
@@ -47,7 +58,6 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         src/basics/SimpleTokenizerV1.cpp
         include/basics/GPTDatasetV1.h
         src/basics/GPTDatasetV1.cpp
-        external/third_party/doctest.hpp
         external/third_party/doctest.cpp
         src/attentionMechanism.cpp
         include/AttentionMechanism/AttentionMechanism.hpp
@@ -115,9 +125,31 @@ target_include_directories(LargeLanguageModelcpp PRIVATE
         "${CMAKE_SOURCE_DIR}/external/third_party"
 )
 
+# ---------------------------------------------------------------------------
+# CUDA toolkit include directories
+#
+# The bundled LibTorch is a CUDA build (2.11.0+cu128), so the CUDA-aware
+# headers that some translation units pull in (c10/cuda/CUDACachingAllocator.h,
+# c10/cuda/CUDAFunctions.h -> c10/cuda/CUDAException.h ->
+# c10/cuda/CUDAMiscFunctions.h) end with `#include <cuda_runtime.h>`, which
+# lives in the CUDA toolkit, not in LibTorch.
+#
+# NOTE: find_package(CUDAToolkit) exports CUDAToolkit_INCLUDE_DIRS.
+# The legacy `CUDA_INCLUDE_DIRS` variable belongs to the old FindCUDA module,
+# which no longer exists in modern CMake, so using it silently added nothing
+# to the include path and cl.exe failed with
+#   fatal error C1083: Cannot open include file: 'cuda_runtime.h'
+# ---------------------------------------------------------------------------
 if(WIN32)
-    include_directories(${CUDA_INCLUDE_DIRS})
+    if(NOT CUDAToolkit_INCLUDE_DIRS)
+        message(FATAL_ERROR
+                "find_package(CUDAToolkit) did not report any include directories. "
+                "Set CUDAToolkit_ROOT to your CUDA toolkit installation, e.g. "
+                "-DCUDAToolkit_ROOT=\"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.8\"")
+    endif()
+    target_include_directories(LargeLanguageModelcpp PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 endif()
+
 
 # ---------------------------------------------------------------------------
 # Linking (platform-specific LibTorch/CUDA libraries)
@@ -158,6 +190,9 @@ else()
     )
 endif()
 
+# Required for linking CUDA symbols into LibTorch on MSVC
+
+
 target_link_libraries(LargeLanguageModelcpp PRIVATE
         tiktoken
         PCRE2::8BIT
@@ -170,12 +205,11 @@ set_target_properties(LargeLanguageModelcpp PROPERTIES
         MAP_IMPORTED_CONFIG_DEBUG "DEBUG;RELEASE"
 )
 
-# Required for linking CUDA symbols into LibTorch on MSVC
+
 if(MSVC)
     target_link_options(LargeLanguageModelcpp PRIVATE
             "/INCLUDE:?warp_size@cuda@at@@YAHXZ")
 endif()
-
 # Copy required DLLs next to the executable (RPATH does not work on Windows)
 if(WIN32)
     file(GLOB TORCH_DLLS "${CMAKE_SOURCE_DIR}/external/libtorch/lib/*.dll")

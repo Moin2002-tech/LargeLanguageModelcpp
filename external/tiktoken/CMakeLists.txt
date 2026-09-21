@@ -31,7 +31,18 @@ pkg_check_modules(PCRE2 REQUIRED libpcre2-8)
 if(NOT TARGET PCRE2::8BIT)
     add_library(PCRE2::8BIT INTERFACE IMPORTED)
     target_include_directories(PCRE2::8BIT INTERFACE ${PCRE2_INCLUDE_DIRS})
-    target_link_libraries(PCRE2::8BIT INTERFACE ${PCRE2_LIBRARIES})
+    # PCRE2_LIBRARIES holds only the bare name ("pcre2-8"), which MSVC turns into
+    # "pcre2-8.lib" *without* adding a /LIBPATH, so link.exe aborts with
+    #   LINK : fatal error LNK1181: cannot open input file 'pcre2-8.lib'
+    # PCRE2_LINK_LIBRARIES contains the same libraries already resolved to
+    # absolute paths by FindPkgConfig, so prefer it. Only when it is empty fall
+    # back to the bare names together with the pkg-config -L directories.
+    if(PCRE2_LINK_LIBRARIES)
+        target_link_libraries(PCRE2::8BIT INTERFACE ${PCRE2_LINK_LIBRARIES})
+    else()
+        link_directories(${PCRE2_LIBRARY_DIRS})
+        target_link_libraries(PCRE2::8BIT INTERFACE ${PCRE2_LIBRARIES})
+    endif()
 endif()
 set(_PCRE2_TARGET PCRE2::8BIT)
 
