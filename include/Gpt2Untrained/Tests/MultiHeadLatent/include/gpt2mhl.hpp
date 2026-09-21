@@ -19,7 +19,7 @@ private:
     LayerNormV3 finalNorm{nullptr};
     torch::nn::Linear outHead{nullptr};
 public:
-    gpt2mhlImpl(config &cfg);
+   explicit gpt2mhlImpl(config &cfg);
     torch::Tensor forward(torch::Tensor x, bool use_Cache = false);
     int64_t getContextLength() const { return pos_emb->options.num_embeddings(); }
     void reset_kv_cache()
