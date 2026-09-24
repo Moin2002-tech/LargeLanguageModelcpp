@@ -1,300 +1,295 @@
-//
-// Created by moinshaikh on 9/11/26.
-//
 #include<TrainedGpt/TrainingGuttenbergDatasets/prepairDatasets.hpp>
 
-
-#include <fstream>
-#include <string>
-#include <vector>
-#include <map>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
 #include <regex>
-#include <algorithm>
-#include <numeric>
-#include <optional>
-/*
-namespace gutenberg {
+#include <sstream>
+#include <stdexcept>
 
-// Configuration structure for preprocessing options
-struct PreprocessorConfig {
-    std::string data_dir = "gutenberg/data/raw";
-    std::string output_dir = "gutenberg_preprocessed";
-    size_t max_size_mb = 500;
-    std::string separator = "<separator>";
-    std::string fallback_encoding = "latin1";
-    double english_threshold = 0.9;
-};
+namespace fs = std::filesystem;
 
-// Check if text is primarily English (ASCII ratio above threshold)
-// Mirrors Python's is_english function
-inline bool is_english(const std::string& text, double threshold = 0.9) {
-    if (text.empty()) return false;
-
-    size_t ascii_chars = 0;
-    for (unsigned char c : text) {
-        if (c < 128) {
-            ++ascii_chars;
-        }
-    }
-
-    return static_cast<double>(ascii_chars) / text.length() > threshold;
+TextManager::TextManager(std::size_t maxSizeMb,
+                          std::string separator,
+                          double englishThreshold,
+                          std::string fallbackEncoding)
+    : maxSizeBytes_(maxSizeMb * 1024ULL * 1024ULL)
+    , separator_(std::move(separator))
+    , englishThreshold_(englishThreshold)
+    , fallbackEncoding_(std::move(fallbackEncoding))
+{
 }
 
-// Strip Gutenberg headers from text content
-// Removes the standard Project Gutenberg header/footer markers
-// This is a simplified version - adapts the Python strip_headers logic
-inline std::string strip_headers(const std::string& content) {
-    std::string result = content;
+void TextManager::countCodepoints(const std::string& utf8Text,
+                                   std::size_t& totalCodepoints,
+                                   std::size_t& asciiCodepoints)
+{
+    totalCodepoints = 0;
+    asciiCodepoints = 0;
 
-    // Pattern for Gutenberg header start: "*** START OF"
-    std::regex start_pattern(R"(\*\*\*\s*START\s+OF)", std::regex::icase);
-    // Pattern for Gutenberg header end: "*** END OF"
-    std::regex end_pattern(R"(\*\*\*\s*END\s+OF)", std::regex::icase);
+    std::size_t i = 0;
+    const std::size_t n = utf8Text.size();
+    while (i < n)
+    {
+        const unsigned char byte0 = static_cast<unsigned char>(utf8Text[i]);
+        std::size_t sequenceLength = 1;
+        unsigned int codepoint = byte0;
 
-    // Find start marker
-    std::smatch start_match;
-    if (std::regex_search(result, start_match, start_pattern)) {
-        // Find end of line after start marker
-        size_t start_pos = start_match.position() + start_match.length();
-        size_t newline_pos = result.find('\n', start_pos);
-        if (newline_pos != std::string::npos) {
-            result = result.substr(newline_pos + 1);
+        if ((byte0 & 0x80U) == 0x00U)
+        {
+            sequenceLength = 1;
+            codepoint = byte0;
+        }
+        else if ((byte0 & 0xE0U) == 0xC0U && i + 1 < n)
+        {
+            sequenceLength = 2;
+            codepoint = byte0 & 0x1FU;
+        }
+        else if ((byte0 & 0xF0U) == 0xE0U && i + 2 < n)
+        {
+            sequenceLength = 3;
+            codepoint = byte0 & 0x0FU;
+        }
+        else if ((byte0 & 0xF8U) == 0xF0U && i + 3 < n)
+        {
+            sequenceLength = 4;
+            codepoint = byte0 & 0x07U;
+        }
+        else
+        {
+            // Malformed byte: treat as a single replacement codepoint so
+            // counting still makes progress instead of looping forever.
+            ++totalCodepoints;
+            ++i;
+            continue;
+        }
+
+        for (std::size_t k = 1; k < sequenceLength; ++k)
+        {
+            const unsigned char cont = static_cast<unsigned char>(utf8Text[i + k]);
+            codepoint = (codepoint << 6) | (cont & 0x3FU);
+        }
+
+        ++totalCodepoints;
+        if (codepoint < 128U)
+        {
+            ++asciiCodepoints;
+        }
+        i += sequenceLength;
+    }
+}
+
+bool TextManager::isValidUtf8(const std::string& bytes)
+{
+    std::size_t i = 0;
+    const std::size_t n = bytes.size();
+    while (i < n)
+    {
+        const unsigned char b0 = static_cast<unsigned char>(bytes[i]);
+        std::size_t len = 0;
+
+        if ((b0 & 0x80U) == 0x00U) len = 1;
+        else if ((b0 & 0xE0U) == 0xC0U) len = 2;
+        else if ((b0 & 0xF0U) == 0xE0U) len = 3;
+        else if ((b0 & 0xF8U) == 0xF0U) len = 4;
+        else return false;
+
+        if (i + len > n) return false;
+
+        for (std::size_t k = 1; k < len; ++k)
+        {
+            const unsigned char bk = static_cast<unsigned char>(bytes[i + k]);
+            if ((bk & 0xC0U) != 0x80U) return false;
+        }
+        i += len;
+    }
+    return true;
+}
+
+std::string TextManager::decodeLatin1ToUtf8(const std::string& bytes)
+{
+    std::string out;
+    out.reserve(bytes.size() * 2);
+    for (unsigned char b : bytes)
+    {
+        if (b < 0x80U)
+        {
+            out.push_back(static_cast<char>(b));
+        }
+        else
+        {
+            // Encode Latin-1 codepoint (0x80-0xFF) as 2-byte UTF-8.
+            out.push_back(static_cast<char>(0xC0U | (b >> 6)));
+            out.push_back(static_cast<char>(0x80U | (b & 0x3FU)));
+        }
+    }
+    return out;
+}
+
+bool TextManager::isEnglish(const std::string& text) const
+{
+    if (text.empty())
+    {
+
+        return false;
+    }
+    std::size_t total = 0;
+    std::size_t ascii = 0;
+    countCodepoints(text, total, ascii);
+    if (total == 0) return false;
+    return static_cast<double>(ascii) / static_cast<double>(total) > englishThreshold_;
+}
+
+std::string TextManager::stripHeaders(const std::string& text)
+{
+    static const std::regex startMarker(R"(\*\*\*\s*START OF (THE|THIS) PROJECT GUTENBERG EBOOK[^\n]*)",
+                                         std::regex::icase);
+    static const std::regex endMarker(R"(\*\*\*\s*END OF (THE|THIS) PROJECT GUTENBERG EBOOK[^\n]*)",
+                                       std::regex::icase);
+
+    std::smatch startMatch;
+    std::string::const_iterator bodyBegin = text.cbegin();
+    if (std::regex_search(text, startMatch, startMarker))
+    {
+        bodyBegin = startMatch[0].second;
+        if (bodyBegin != text.cend() && *bodyBegin == '\n')
+        {
+            ++bodyBegin;
         }
     }
 
-    // Find end marker
-    if (std::regex_search(result, end_match, end_pattern)) {
-        size_t end_pos = end_match.position();
-        result = result.substr(0, end_pos);
+    std::string::const_iterator bodyEnd = text.cend();
+    std::smatch endMatch;
+    if (std::regex_search(bodyBegin, text.cend(), endMatch, endMarker))
+    {
+        bodyEnd = endMatch[0].first;
     }
 
-    // Trim trailing whitespace
-    while (!result.empty() && (result.back() == '\n' || result.back() == '\r' || result.back() == ' ')) {
-        result.pop_back();
+    std::string body(bodyBegin, bodyEnd);
+
+    // Trim leading/trailing whitespace-only lines left behind by the cut.
+    const auto first = body.find_first_not_of(" \t\r\n");
+    const auto last = body.find_last_not_of(" \t\r\n");
+    if (first == std::string::npos)
+    {
+        return "";
+    }
+    return body.substr(first, last - first + 1);
+}
+
+std::string TextManager::collapseBlankLines(const std::string& text)
+{
+    static const std::regex blankRun(R"(\n\s*\n)");
+    return std::regex_replace(text, blankRun, "\n\n");
+}
+
+std::string TextManager::readFileWithFallback(const std::string& path) const
+{
+    std::ifstream file(path, std::ios::binary);
+    if (!file)
+    {
+        throw std::runtime_error("Could not open file: " + path);
+    }
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    std::string raw = buffer.str();
+
+    if (isValidUtf8(raw))
+    {
+        return raw;
     }
 
+    std::cerr << "Warning: UnicodeDecodeError encountered. "
+                 "Trying fallback encoding for " << path << "\n";
+    return decodeLatin1ToUtf8(raw);
+}
+
+std::vector<std::string> TextManager::collectFiles(const std::string& dataDir,
+                                                     const std::vector<std::string>& extensions)
+{
+    std::vector<std::string> result;
+    if (!fs::exists(dataDir))
+    {
+        return result;
+    }
+
+    for (const auto& entry : fs::recursive_directory_iterator(dataDir))
+    {
+        if (!entry.is_regular_file()) continue;
+        const std::string name = entry.path().filename().string();
+        for (const auto& ext : extensions)
+        {
+            if (name.size() >= ext.size() &&
+                name.compare(name.size() - ext.size(), ext.size(), ext) == 0)
+            {
+                result.push_back(entry.path().string());
+                break;
+            }
+        }
+    }
     return result;
 }
 
-// Normalize multiple blank lines to single blank line
-// Mirrors Python's re.sub(r"\n\s*\n", "\n\n", content)
-inline std::string normalize_blank_lines(const std::string& content) {
-    std::regex blank_line_pattern(R"(\n\s*\n)");
-    return std::regex_replace(content, blank_line_pattern, "\n\n");
-}
-
-// Get all text files from directory (recursively)
-// Matches .txt and .txt.utf8 extensions like the Python version
-inline std::vector<std::filesystem::path> get_text_files(const std::filesystem::path& data_dir) {
-    std::vector<std::filesystem::path> files;
-
-    if (!std::filesystem::exists(data_dir) || !std::filesystem::is_directory(data_dir)) {
-        return files;
+int TextManager::combineFiles(const std::vector<std::string>& filePaths,
+                               const std::string& targetDir) const
+{
+    if (!fs::exists(targetDir))
+    {
+        fs::create_directories(targetDir);
     }
 
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(data_dir)) {
-        if (entry.is_regular_file()) {
-            std::string ext = entry.path().extension().string();
-            // Match .txt or .txt.utf8
-            if (ext == ".txt" || ext == ".utf8" ||
-                entry.path().string().ends_with(".txt.utf8")) {
-                files.push_back(entry.path());
-            }
+    std::vector<std::string> currentContent;
+    std::size_t currentSize = 0;
+    int fileCounter = 1;
+
+    auto flush = [&](int counter)
+    {
+        const fs::path targetFilePath = fs::path(targetDir) / ("combined_" + std::to_string(counter) + ".txt");
+        std::ofstream out(targetFilePath, std::ios::binary);
+        for (std::size_t i = 0; i < currentContent.size(); ++i)
+        {
+            if (i > 0) out << separator_;
+            out << currentContent[i];
         }
-    }
+    };
 
-    // Sort for consistent ordering
-    std::sort(files.begin(), files.end());
-    return files;
-}
+    std::size_t processed = 0;
+    for (const auto& filePath : filePaths)
+    {
+        ++processed;
+        std::string content = readFileWithFallback(filePath);
 
-// Read file content with encoding fallback
-// First tries UTF-8, falls back to latin1 if that fails
-inline std::optional<std::string> read_file_with_fallback(
-    const std::filesystem::path& file_path,
-    const std::string& fallback_encoding = "latin1"
-) {
-    // Try UTF-8 first
-    std::ifstream file(file_path, std::ios::binary);
-    if (!file.is_open()) {
-        return std::nullopt;
-    }
-
-    // Read entire file into string
-    std::string content((std::istreambuf_iterator<char>(file)),
-                         std::istreambuf_iterator<char>());
-    file.close();
-
-    // Check if content is valid UTF-8
-    // Simple check: look for invalid UTF-8 sequences
-    bool is_valid_utf8 = true;
-    for (size_t i = 0; i < content.size(); ) {
-        unsigned char c = content[i];
-
-        if (c <= 0x7F) {
-            // ASCII character, always valid
-            i += 1;
-        } else if (c >= 0xC2 && c <= 0xDF) {
-            // 2-byte sequence
-            if (i + 1 >= content.size() || (content[i + 1] & 0xC0) != 0x80) {
-                is_valid_utf8 = false;
-                break;
-            }
-            i += 2;
-        } else if (c >= 0xE0 && c <= 0xEF) {
-            // 3-byte sequence
-            if (i + 2 >= content.size()) {
-                is_valid_utf8 = false;
-                break;
-            }
-            if ((content[i + 1] & 0xC0) != 0x80 || (content[i + 2] & 0xC0) != 0x80) {
-                is_valid_utf8 = false;
-                break;
-            }
-            i += 3;
-        } else if (c >= 0xF0 && c <= 0xF4) {
-            // 4-byte sequence
-            if (i + 3 >= content.size()) {
-                is_valid_utf8 = false;
-                break;
-            }
-            if ((content[i + 1] & 0xC0) != 0x80 ||
-                (content[i + 2] & 0xC0) != 0x80 ||
-                (content[i + 3] & 0xC0) != 0x80) {
-                is_valid_utf8 = false;
-                break;
-            }
-            i += 4;
-        } else {
-            // Invalid starting byte
-            is_valid_utf8 = false;
-            break;
-        }
-    }
-
-    if (is_valid_utf8) {
-        return content;
-    }
-
-    // UTF-8 validation failed, would need to re-read with fallback encoding
-    // For simplicity, return the content as-is (latin1 is essentially raw bytes)
-    // A full implementation would use a library like iconv for proper conversion
-    return content;
-}
-
-// Main preprocessing function: combine files into chunks by size
-// Returns the number of output files created
-inline int combine_files(
-    const std::vector<std::filesystem::path>& file_paths,
-    const std::string& target_dir,
-    size_t max_size_mb = 500,
-    const std::string& separator = "<separator>",
-    const std::string& fallback_encoding = "latin1",
-    double english_threshold = 0.9
-) {
-    // Create output directory if it doesn't exist
-    std::filesystem::create_directories(target_dir);
-
-    std::vector<std::string> current_content;
-    size_t current_size = 0;
-    int file_counter = 1;
-
-    for (const auto& file_path : file_paths) {
-        // Read file content
-        auto content_opt = read_file_with_fallback(file_path, fallback_encoding);
-        if (!content_opt.has_value()) {
-            std::cerr << "Warning: Could not read file: " << file_path << std::endl;
+        if (!isEnglish(content))
+        {
+            std::cerr << "Skipping " << filePath
+                       << " as it does not contain primarily English text.\n";
             continue;
         }
 
-        std::string content = content_opt.value();
+        content = stripHeaders(content);
+        content = collapseBlankLines(content);
 
-        // Check if content is primarily English
-        if (!is_english(content, english_threshold)) {
-            std::cerr << "Skipping " << file_path << " as it does not contain primarily English text." << std::endl;
-            continue;
+        const std::size_t estimatedSize = content.size(); // UTF-8 bytes
+
+        if (currentSize + estimatedSize > maxSizeBytes_)
+        {
+            flush(fileCounter);
+            ++fileCounter;
+            currentContent.clear();
+            currentContent.push_back(content);
+            currentSize = estimatedSize;
         }
-
-        // Strip Gutenberg headers
-        content = strip_headers(content);
-
-        // Normalize blank lines
-        content = normalize_blank_lines(content);
-
-        // Calculate UTF-8 encoded size
-        size_t estimated_size = content.size(); // Approximate for ASCII-heavy text
-
-        // Check if we need to create a new output file
-        if (current_size + estimated_size > max_size_mb * 1024 * 1024) {
-            // Write current batch to file
-            std::filesystem::path target_file_path =
-                std::filesystem::path(target_dir) / ("combined_" + std::to_string(file_counter) + ".txt");
-
-            std::ofstream target_file(target_file_path, std::ios::out);
-            if (target_file.is_open()) {
-                for (size_t i = 0; i < current_content.size(); ++i) {
-                    if (i > 0) {
-                        target_file << separator;
-                    }
-                    target_file << current_content[i];
-                }
-                target_file.close();
-            }
-
-            file_counter++;
-            current_content = {content};
-            current_size = estimated_size;
-        } else {
-            current_content.push_back(content);
-            current_size += estimated_size;
+        else
+        {
+            currentContent.push_back(content);
+            currentSize += estimatedSize;
         }
     }
 
-    // Write remaining content
-    if (!current_content.empty()) {
-        std::filesystem::path target_file_path =
-            std::filesystem::path(target_dir) / ("combined_" + std::to_string(file_counter) + ".txt");
-
-        std::ofstream target_file(target_file_path, std::ios::out);
-        if (target_file.is_open()) {
-            for (size_t i = 0; i < current_content.size(); ++i) {
-                if (i > 0) {
-                    target_file << separator;
-                }
-                target_file << current_content[i];
-            }
-            target_file.close();
-        }
-        file_counter++;
+    if (!currentContent.empty())
+    {
+        flush(fileCounter);
     }
 
-    return file_counter - 1; // Subtract 1 because counter was incremented after last write
+    return fileCounter;
 }
-
-// Run preprocessing with configuration
-// Returns the number of output files created
-inline int preprocess(const PreprocessorConfig& config) {
-    // Get all text files from data directory
-    auto all_files = get_text_files(config.data_dir);
-
-    std::cout << all_files.size() << " file(s) to process." << std::endl;
-
-    // Combine files into chunks
-    int file_counter = combine_files(
-        all_files,
-        config.output_dir,
-        config.max_size_mb,
-        config.separator,
-        config.fallback_encoding,
-        config.english_threshold
-    );
-
-    std::cout << file_counter << " file(s) saved in "
-              << std::filesystem::absolute(config.output_dir) << std::endl;
-
-    return file_counter;
-}
-
-} // namespace gutenberg
-*/

@@ -115,6 +115,8 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/TrainedGpt/generateText.hpp
         include/TrainedGpt/TrainingGuttenbergDatasets/prepairDatasets.hpp
         src/TrainedGpt/TrainingGuttenbergDatasets/prepairDatasets.cpp
+        src/TrainedGpt/TrainingGuttenbergDatasets/tests.cpp
+        src/TrainedGpt/TrainingGuttenbergDatasets/combineTextfiles.cpp
 )
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
@@ -206,7 +208,7 @@ set_target_properties(LargeLanguageModelcpp PROPERTIES
 )
 
 
-if(MSVC)
+if(WIN32)
     target_link_options(LargeLanguageModelcpp PRIVATE
             "/INCLUDE:?warp_size@cuda@at@@YAHXZ")
 endif()

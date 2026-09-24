@@ -1,54 +1,81 @@
-#ifndef LARGELANGUAGEMODELCPP_GUTENBERG_PREPROCESSOR_HPP
-#define LARGELANGUAGEMODELCPP_GUTENBERG_PREPROCESSOR_HPP
+#pragma once
 
+#include <cstddef>
 #include <string>
 #include <vector>
-#include <filesystem>
-#include <fstream>
-#include <regex>
-#include <algorithm>
-#include <numeric>
 
-namespace gutenberg {
+// TextManager
+//
+// C++ port of the Python "combine_files" preprocessing script used to
+// prepare Project Gutenberg text files for LLM pretraining. It:
+//   - walks a directory for raw text files,
+//   - filters out files that are not primarily English/ASCII,
+//   - strips Project Gutenberg boilerplate headers/footers,
+//   - collapses runs of blank lines,
+//   - concatenates files (joined by a separator token) into
+//     size-capped "combined_N.txt" output files.
 
-    // Configuration structure for preprocessing options
-    struct PreprocessorConfig {
-        std::string data_dir = "gutenberg/data/raw";
-        std::string output_dir = "gutenberg_preprocessed";
-        size_t max_size_mb = 500;
-        std::string separator = "<separator>";
-        std::string fallback_encoding = "latin1";
-        double english_threshold = 0.9;
-    };
 
-    // Check if text is primarily English (ASCII ratio above threshold)
-    bool is_english(const std::string& text, double threshold = 0.9);
+class TextManager
+{
+private:
+    std::size_t maxSizeBytes_;
+    std::string separator_;
+    double englishThreshold_;
+    std::string fallbackEncoding_; // documentation only; see readFileWithFallback
 
-    // Strip Gutenberg headers from text content
-    // Removes the standard Project Gutenberg header/footer markers
-    std::string strip_headers(const std::string& content);
+    // Counts total Unicode codepoints and how many of them are ASCII
+    // (codepoint < 128). Mirrors Python iterating over decoded str characters.
+    static void countCodepoints(const std::string& utf8Text,
+                                 std::size_t& totalCodepoints,
+                                 std::size_t& asciiCodepoints);
 
-    // Normalize multiple blank lines to single blank line
-    std::string normalize_blank_lines(const std::string& content);
+    // Returns true if `bytes` is well-formed UTF-8.
+    static bool isValidUtf8(const std::string& bytes);
 
-    // Get all text files from directory (recursively)
-    std::vector<std::filesystem::path> get_text_files(const std::filesystem::path& data_dir);
+    // Reinterprets a raw byte string as if it had been decoded with a
+    // single-byte "latin1"-style codec, producing valid UTF-8 output.
+    // (Analogous to Python's `open(..., encoding="latin1")` fallback.)
+    static std::string decodeLatin1ToUtf8(const std::string& bytes);
 
-    // Main preprocessing function: combine files into chunks by size
-    // Returns the number of output files created
-    int combine_files(
-        const std::vector<std::filesystem::path>& file_paths,
-        const std::string& target_dir,
-        size_t max_size_mb = 500,
-        const std::string& separator = "<separator>",
-        const std::string& fallback_encoding = "latin1",
-        double english_threshold = 0.9
-    );
+public:
+    explicit TextManager(std::size_t maxSizeMb = 500,
+                          std::string separator = "<|endoftext|>",
+                          double englishThreshold = 0.9,
+                          std::string fallbackEncoding = "latin1");
 
-    // Run preprocessing with configuration
-    // Returns the number of output files created
-    int preprocess(const PreprocessorConfig& config);
+    // Returns true if the fraction of ASCII characters in `text` exceeds
+    // the configured threshold.
+    bool isEnglish(const std::string& text) const;
 
-} // namespace gutenberg
+    // Strips Project Gutenberg's standard header/footer boilerplate,
+    // returning only the body text between the START/END markers when
+    // they are present.
+    static std::string stripHeaders(const std::string& text);
 
-#endif // LARGELANGUAGEMODELCPP_GUTENBERG_PREPROCESSOR_HPP
+    // Collapses any run of blank (whitespace-only) lines into a single
+    // blank line, equivalent to Python's re.sub(r"\n\s*\n", "\n\n", text).
+    static std::string collapseBlankLines(const std::string& text);
+
+    // Reads a file as UTF-8; on decode failure, retries with the
+    // configured fallback (latin1-style) decoding.
+    std::string readFileWithFallback(const std::string& path) const;
+
+    // Recursively collects paths under `dataDir` whose file name ends
+    // with one of `extensions` (e.g. {".txt", ".txt.utf8"}).
+    static std::vector<std::string> collectFiles(const std::string& dataDir,
+                                                   const std::vector<std::string>& extensions);
+
+    // Processes each file in `filePaths`: reads, filters non-English
+    // content, strips headers, collapses blank lines, then accumulates
+    // content into `targetDir/combined_<n>.txt` files, starting a new
+    // file whenever the running size would exceed maxSizeMb. Returns the
+    // number of combined files written (the highest file_counter used).
+    int combineFiles(const std::vector<std::string>& filePaths,
+                      const std::string& targetDir) const;
+
+    // Accessors
+    std::size_t maxSizeBytes() const { return maxSizeBytes_; }
+    const std::string& separator() const { return separator_; }
+    double englishThreshold() const { return englishThreshold_; }
+};
