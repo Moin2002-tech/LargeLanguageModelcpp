@@ -19,6 +19,9 @@ PreparedData::PreparedData(std::string_view modelPath) {
     tiktoken::register_encoding(def);
     tokenizer = tiktoken::get_encoding("gpt2");
 }
+// dataPreparation.cpp
+PreparedData::PreparedData(std::shared_ptr<tiktoken::Encoding> tokenizer)
+    : tokenizer(std::move(tokenizer)) {}
 
 torch::Tensor PreparedData::encodeBatch(const std::vector<std::string>& texts, int pad_to_length) {
     if (texts.empty()) {

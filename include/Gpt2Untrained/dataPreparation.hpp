@@ -18,7 +18,8 @@ private:
 
 public:
     explicit PreparedData(std::string_view modelPath);
-
+    // dataPreparation.hpp — add alongside the existing constructor
+    explicit PreparedData(std::shared_ptr<tiktoken::Encoding> tokenizer);
     // Encode a vector of strings into a single stacked batch tensor [batch_size, seq_len]
     // pad_to_length: pad/truncate all sequences to this length (0 = no padding, use shortest sequence)
     torch::Tensor encodeBatch(const std::vector<std::string>& texts, int pad_to_length = 0);

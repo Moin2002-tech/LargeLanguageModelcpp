@@ -117,6 +117,9 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         src/TrainedGpt/TrainingGuttenbergDatasets/prepairDatasets.cpp
         src/TrainedGpt/TrainingGuttenbergDatasets/tests.cpp
         src/TrainedGpt/TrainingGuttenbergDatasets/combineTextfiles.cpp
+        include/TrainedGpt/TrainingGuttenbergDatasets/TrainingOnGuttenBerg.hpp
+        src/TrainedGpt/TrainingGuttenbergDatasets/TrainingGutenBerg.cpp
+        src/TrainedGpt/TrainingGuttenbergDatasets/TrainingSession.cpp
 )
 
 target_include_directories(LargeLanguageModelcpp PRIVATE

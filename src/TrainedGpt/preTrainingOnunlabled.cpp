@@ -19,7 +19,7 @@ auto createDataLoaderV2(const std::string &text,
     int stride
     )
 {
-    auto dataset = GPTDatasetV1(text, tokenizer, max_length, stride);
+    auto dataset = GPTDatasetV1(text, std::move(tokenizer), max_length, stride);
     // Create dataloader
     // SequentialSampler is used to match the default behavior of Python's
     // DataLoader (shuffle=False)
