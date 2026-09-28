@@ -30,6 +30,8 @@ project(LargeLanguageModelcpp)
 find_package(fmt CONFIG REQUIRED)
 find_package(pcre2 CONFIG REQUIRED)
 find_package(CURL CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 
 # Add tiktoken as a subdirectory
 add_subdirectory(external/tiktoken)
@@ -120,6 +122,7 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/TrainedGpt/TrainingGuttenbergDatasets/TrainingOnGuttenBerg.hpp
         src/TrainedGpt/TrainingGuttenbergDatasets/TrainingGutenBerg.cpp
         src/TrainedGpt/TrainingGuttenbergDatasets/TrainingSession.cpp
+        src/TrainedGpt/InterfaceGUI/tests.cpp
 )
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
@@ -161,6 +164,8 @@ endif()
 # ---------------------------------------------------------------------------
 if(WIN32)
     target_link_libraries(LargeLanguageModelcpp PRIVATE
+            imgui::imgui
+            glfw
             "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch.lib"
             "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch_cpu.lib"
             "${CMAKE_SOURCE_DIR}/external/libtorch/lib/torch_cuda.lib"
@@ -169,6 +174,8 @@ if(WIN32)
     )
 else()
     target_link_libraries(LargeLanguageModelcpp PRIVATE
+            imgui::imgui
+            glfw
             -Wl,--no-as-needed
             -Wl,--whole-archive
             "${CMAKE_SOURCE_DIR}/external/libtorch/lib/libtorch_cuda.so"
