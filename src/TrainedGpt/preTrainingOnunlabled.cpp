@@ -637,12 +637,18 @@ TEST_CASE("TrainingSession")
     auto valLoader = createDataLoaderV2(val_data, data.getTokenizer(), 2 /*batch_Size*/, cfg.context_length, cfg.context_length);
 
     auto optimizer = torch::optim::AdamW(gpt2Mhl->parameters(),torch::optim::AdamWOptions(0.0004).weight_decay(0.1));
-    int num_epochs = 20;
+    int num_epochs = 10;
     EntropyData data2 = train_model_simple(gpt2Mhl, data,
         trainLoader,
         valLoader,
         optimizer,
         device, num_epochs, 5, 5, "every effort moves you",data.getTokenizer());
+
+    std::string finalPath = std::string(DATASETS_DIR) + "model_mhl.torchscript";
+    torch::save(gpt2Mhl, finalPath);
+    std::cout << "Saved final model: " << finalPath << "\n";
+
+
 }
 
 
