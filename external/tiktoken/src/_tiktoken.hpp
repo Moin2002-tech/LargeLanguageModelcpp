@@ -391,7 +391,23 @@ TIKTOKEN_FORCE_INLINE int clz32(std::uint32_t x) noexcept {
 TIKTOKEN_FORCE_INLINE std::size_t next_pow2(std::size_t x) noexcept {
   if (x <= 1)
     return 1;
-  return std::size_t(1) << (64 - clz32(static_cast<std::uint32_t>(x - 1)));
+#if defined(__GNUC__) || defined(__clang__)
+  // NOTE: this used to be `1 << (64 - clz32(x - 1))`. clz32 counts leading
+  // zeros in a 32-bit value (0..32), so the shift was 32..63, producing
+  // 8 GB for x = 2, 4 TB for x = 1024, etc. -> std::bad_alloc on any
+  // multi-byte token piece. Count zeros in the full 64-bit value instead.
+  return std::size_t(1)
+         << (64 - __builtin_clzll(static_cast<unsigned long long>(x - 1)));
+#elif defined(_MSC_VER)
+  unsigned long idx = 0;
+  _BitScanReverse64(&idx, static_cast<unsigned __int64>(x - 1));
+  return std::size_t(1) << (idx + 1);
+#else
+  std::size_t n = 1;
+  while (n < x)
+    n <<= 1;
+  return n;
+#endif
 }
 } // namespace bitutil
 

@@ -25,7 +25,7 @@ namespace fs = std::filesystem;
 TEST_CASE("bergTrainingSession")
 {
     // --- 1. Hyper-parameters (Python argparse defaults, no parser) --------
-    std::string data_path  = std::string(DATASETS_DIR) + "guttenberg_preprocessed/combined_1.txt";
+    std::string data_path  = std::string(DATASETS_DIR) + "guttenberg/gutenberg/data/raw/PG84_raw.txt";
     std::string output_dir = "model_checkpoints";
 
     const int    n_epochs          = 1;
@@ -33,7 +33,12 @@ TEST_CASE("bergTrainingSession")
     const int    eval_freq         = 100;
     const int    save_ckpt_freq    = 100000;
     const double lr                = 5e-4;
-    const int    batch_size        = 4;
+    // GPU is an NVIDIA T600 with ~3.6 GiB VRAM (only ~3.0 GiB usable after the
+    // display). Fixed costs: ~0.5 GB weights + ~1 GB AdamW states + ~0.5 GB
+    // gradients. Logits/softmax/activations scale with batch*seq_len: e.g.
+    // batch 4 x seq 1024 alone is ~823 MB of logits -> CUDA OOM. So use
+    // batch_size 1 AND cap the training chunk length (max_seq_len=256 below).
+    const int    batch_size        = 1;
     const bool   debug             = false;
 
     // --- 2. Model config (Python GPT_CONFIG_124M dict -> config struct) ---
@@ -88,7 +93,8 @@ TEST_CASE("bergTrainingSession")
         /*global_ckpt_freq=*/      save_ckpt_freq,
         data.getTokenizer(),
         /*batch_size=*/            batch_size,
-        /*trainRatio=*/            0.7f);
+        /*trainRatio=*/            0.7f,
+        /*max_seq_len=*/           256);
 
     // --- 7. Loss "plot" (plot_losses replacement: text table) ---------------
     std::cout << "\n=== Loss curve (step | tokens | train | val) ===\n";

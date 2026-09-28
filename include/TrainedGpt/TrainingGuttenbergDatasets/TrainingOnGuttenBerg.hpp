@@ -46,7 +46,8 @@ public:
         int global_ckpt_freq,
         std::shared_ptr<tiktoken::Encoding> embeddings,
         int batch_size = 1024,
-        float trainRatio = 0.70);
+        float trainRatio = 0.70,
+        int max_seq_len = 1024);
 
     torch::Tensor cal_loss_batch(
     const torch::Tensor &inputBatch,

@@ -5,6 +5,10 @@
 
 #include<TrainedGpt/TrainingGuttenbergDatasets/TrainingOnGuttenBerg.hpp>
 #include<basics/GPTDatasetV1.h>
+#include<fstream>
+#include<iterator>
+#include<iostream>
+#include<algorithm>
 #include<memory>
 #include <csignal>
 #include <chrono>
@@ -19,8 +23,19 @@ namespace {
     void handle_sigint(int) { g_interrupted = true; }
 }
 TrainingOnGuttenBerg::TrainingOnGuttenBerg(std::string_view path) {
-   Text text(path);
-   text_ = text.getText();
+   // NOTE: the project's Text class only OPENS the file in its constructor;
+   // metaData.textRaw is populated only as a side-effect of printText().
+   // Calling text.getText() here would silently produce an empty string,
+   // which makes GPTDatasetV1 yield 0 examples and the training loop run
+   // 0 iterations (no eval / sample prints). So read the file directly.
+   std::ifstream file(std::string(path), std::ios::binary);
+   if (!file.is_open()) {
+      std::cerr << "Warning: could not open corpus file: " << path << "\n";
+      return;
+   }
+   text_.assign(std::istreambuf_iterator<char>(file),
+                std::istreambuf_iterator<char>());
+   std::cout << "Gutenberg corpus loaded: " << text_.size() << " chars\n";
 }
 
 auto TrainingOnGuttenBerg::create_dataloader(
@@ -211,7 +226,8 @@ EntropyData TrainingOnGuttenBerg::train_model_simple(gpt2mhl &model,
     int global_ckpt_freq,
     std::shared_ptr<tiktoken::Encoding> embeddings,
     int batch_size,
-    float trainRatio
+    float trainRatio,
+    int max_seq_len
     )
 {
     // Operate on the class's own members rather than shadowing them, so
@@ -222,12 +238,17 @@ EntropyData TrainingOnGuttenBerg::train_model_simple(gpt2mhl &model,
 
     int context_length = model->getContextLength();
 
+    // The model supports up to `context_length` tokens, but training on very
+    // long sequences needs a lot of VRAM (logits/softmax/activations scale
+    // with seq_len). max_seq_len lets a small GPU cap the chunk length while
+    // keeping the model config unchanged.
+    int seq_len = std::min(context_length, max_seq_len);
+
     // Build the training/validation loaders once, up front, from the single
     // combined Gutenberg text file — no per-book loop needed since it's
-    // already merged. stride == context_length matches the Python reference
-    // (non-overlapping chunks).
+    // already merged. stride == seq_len (non-overlapping chunks).
     auto [trainLoader, valLoader] = create_dataloader(
-        embeddings, trainRatio, batch_size, context_length, context_length);
+        embeddings, trainRatio, batch_size, seq_len, seq_len);
 
     // ASSUMPTION: PreparedData(tokenizer) is a valid constructor — adjust if
     // dataPreparation.hpp declares it differently.
@@ -278,14 +299,15 @@ EntropyData TrainingOnGuttenBerg::train_model_simple(gpt2mhl &model,
                 // Fresh eval-only loaders each time — see note above on why
                 // trainLoader/valLoader can't be reused here.
                 auto [evalTrainLoader, evalValLoader] = create_dataloader(
-                    embeddings, trainRatio, batch_size, context_length, context_length);
+                    embeddings, trainRatio, batch_size, seq_len, seq_len);
 
-                // NOTE: train_model_simple has no explicit "eval_iter" param
-                // (how many batches to average over). Passing 0 here means
-                // total_loss_loader evaluates over ALL batches in the split,
-                // which is correct but can be slow on a large corpus. Add an
-                // eval_iter parameter if you want to cap it (e.g. 5 batches).
-                evalResult_ = evaluate_model(model, evalTrainLoader, evalValLoader, device, /*iteration=*/0);
+                // NOTE: only evaluate the first `eval_iter` batches of each
+                // split instead of the whole corpus. On this 4 GB GPU (and for
+                // sane wall-clock time) a full-corpus eval every 100 steps is
+                // neither feasible nor necessary; total_loss_loader(..., 0)
+                // would still evaluate EVERY batch.
+                constexpr int eval_iter = 5;  // batches per split per eval
+                evalResult_ = evaluate_model(model, evalTrainLoader, evalValLoader, device, eval_iter);
 
                 auto train_loss_1d  = torch::tensor({evalResult_.trainLoss});
                 auto val_loss_1d    = torch::tensor({evalResult_.valLoss});
@@ -314,6 +336,7 @@ EntropyData TrainingOnGuttenBerg::train_model_simple(gpt2mhl &model,
             if (global_ckpt_freq > 0 && global_step % global_ckpt_freq == 0) {
                 save_checkpoint(std::to_string(global_step));
             }
+
         }
     }
 
