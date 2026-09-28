@@ -163,7 +163,9 @@ Pre-training is driven from `src/TrainedGpt/preTrainingOnunlabled.cpp` using the
 The randomly-initialized model must be pre-trained before it produces coherent text. You can download the **GPT-2 small (124M)** pretrained weights (PyTorch format) trained from scratch:
 
 ```
-https://huggingface.co/rasbt/gpt2-from-scratch-pytorch/resolve/main/gpt2-small-124M.pth
+cd datasets
+curl -L -O https://huggingface.co/rasbt/gpt2-from-scratch-pytorch/resolve/main/gpt2-small-124M.pth
+
 ```
 
 Save it as `models/gpt2-small-124M.pth` (or your preferred path) and load it into the model with `torch::load` before inference/training:
