@@ -68,7 +68,6 @@ TEST_CASE("bergTrainingSession")
     PreparedData data(std::string(DATASETS_DIR) + "gpt2.tiktoken"); // gpt2 encoding
 
     // --- 4. Data: the corpus is already combined into a single text file ----
-    // (Your Python version walked a dir of *.txt files; those were pre-merged
     //  into datasets/guttenberg_preprocessed/combined_1.txt, so we use it
     //  directly -- no recursive scan / merge needed.)
     if (!fs::exists(fs::path(data_path)))

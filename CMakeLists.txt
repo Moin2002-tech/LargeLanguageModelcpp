@@ -120,6 +120,7 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/TrainedGpt/TrainingGuttenbergDatasets/TrainingOnGuttenBerg.hpp
         src/TrainedGpt/TrainingGuttenbergDatasets/TrainingGutenBerg.cpp
         src/TrainedGpt/TrainingGuttenbergDatasets/TrainingSession.cpp
+        src/TrainedGpt/HyperParameter/GridSearchHParam/Hyperparameters.cpp
 )
 
 target_include_directories(LargeLanguageModelcpp PRIVATE

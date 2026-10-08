@@ -10,6 +10,7 @@
 #include<Gpt2Untrained/Tests/MultiHeadLatent/include/gpt2mhl.hpp>
 #include<tiktoken.hpp>
 #include<Gpt2Untrained/dataPreparation.hpp>
+#include<basics/GPTDatasetV1.h>
 //Initialize lists to track losses and tokens seen
 struct EntropyData {
     torch::Tensor train_losses, val_targets,track_token_seen;
@@ -33,7 +34,30 @@ private:
 
 public:
     explicit TrainingOnGuttenBerg(std::string_view path);
-    auto create_dataloader(std::shared_ptr<tiktoken::Encoding> tokenizer,float training_ratio = 0.0,int batchSize= 0, int maxLength = 0, int stride =0);
+   inline auto create_dataloader(std::shared_ptr<tiktoken::Encoding> tokenizer,float training_ratio = 0.0,int batchSize= 0, int maxLength = 0, int stride =0)
+    {
+       // Character-based split (matches the Python `text[:idx]` / `text[idx:]`
+       // reference). training_ratio is now actually used.
+       size_t split_idx = static_cast<size_t>(text_.size() * training_ratio);
+       std::string train_text = text_.substr(0, split_idx);
+       std::string val_text   = text_.substr(split_idx);
+
+       auto train_dataset = GPTDatasetV1(train_text, tokenizer, maxLength, stride);
+       auto val_dataset   = GPTDatasetV1(val_text, tokenizer, maxLength, stride);
+
+       auto train_loader =
+           torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(
+               std::move(train_dataset),
+               torch::data::DataLoaderOptions().batch_size(batchSize));
+
+       auto val_loader =
+           torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(
+               std::move(val_dataset),
+               torch::data::DataLoaderOptions().batch_size(batchSize));
+
+       // NOTE: return type changed from a single loader to a pair.
+       return std::make_pair(std::move(train_loader), std::move(val_loader));
+   }
     EntropyData train_model_simple(
         gpt2mhl &model,
         torch::optim::Optimizer &optimizer,

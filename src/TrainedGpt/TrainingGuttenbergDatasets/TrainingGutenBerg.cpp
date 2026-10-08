@@ -38,6 +38,7 @@ TrainingOnGuttenBerg::TrainingOnGuttenBerg(std::string_view path) {
    std::cout << "Gutenberg corpus loaded: " << text_.size() << " chars\n";
 }
 
+/*
 auto TrainingOnGuttenBerg::create_dataloader(
     std::shared_ptr<tiktoken::Encoding> tokenizer,
     float training_ratio,
@@ -67,7 +68,7 @@ auto TrainingOnGuttenBerg::create_dataloader(
    // NOTE: return type changed from a single loader to a pair.
    return std::make_pair(std::move(train_loader), std::move(val_loader));
 }
-
+*/
 torch::Tensor TrainingOnGuttenBerg::cal_loss_batch(const torch::Tensor &inputBatch, const torch::Tensor &targetBatch, gpt2mhl &model)
 {
    // Use the model's device so input/target always match the model weights.
@@ -262,7 +263,8 @@ EntropyData TrainingOnGuttenBerg::train_model_simple(gpt2mhl &model,
 
     auto start_time = std::chrono::steady_clock::now();
 
-    auto save_checkpoint = [&](const std::string &tag) {
+    auto save_checkpoint = [&](const std::string &tag)
+    {
         std::string path = outputDirectory + "/model_" + tag + ".pt";
         torch::save(model, path);
         std::cout << "Saved checkpoint: " << path << "\n";
