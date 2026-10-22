@@ -13,20 +13,33 @@
 #include<GPT2LargeLanguageModel/util.hpp>
 #include<variant>
 #include <limits>
+#include <c10/cuda/CUDACachingAllocator.h>
+#include <c10/cuda/CUDAAllocatorConfig.h>
+
 using HValue  = std::variant<int, float>;
 using HGrid   = std::vector<std::pair<std::string, std::vector<HValue>>>; // vector keeps order, like a Python dict
 using HConfig = std::map<std::string, HValue>;
 
 HGrid makeGrid() {
+    // Trimmed grid: 32 configs instead of 12,960.
+    // Rationale for this tiny corpus (~14 sliding windows of 256 tokens):
+    //  - num_epochs pinned to 5: with this little data the extra epochs mostly
+    //    add overfitting noise; retrain the winning config with more epochs.
+    //  - warmup/initial_lr/min_lr pinned: with only ~35 total optimizer steps
+    //    the schedule shape matters far less than peak_lr itself.
+    //  - batch_size 8/16 dropped: they yield only 1-2 batches per epoch here,
+    //    i.e. 5-10 update steps total, too few to learn anything.
+    //  - drop_rate/weight_decay reduced to the two most common GPT-2 values.
+    // Re-expand a dimension here after the first pass if its effect matters.
     return {
-            {"batch_size",          {2, 4, 8, 16}},
-            {"drop_rate",           {0.0f, 0.1f, 0.2f}},
-            {"warmup_iterations",   {10, 20, 30}},
-            {"weight_decay",        {0.1f, 0.01f, 0.0f}},
+            {"batch_size",          {2, 4}},
+            {"drop_rate",           {0.0f, 0.1f}},
+            {"warmup_iterations",   {10}},
+            {"weight_decay",        {0.01f, 0.1f}},
             {"peak_lr",             {0.0001f, 0.0005f, 0.001f, 0.005f}},
-            {"initial_lr",          {0.00005f, 0.0001f}},
-            {"min_lr",              {0.00005f, 0.00001f, 0.0001f}},
-            {"num_epochs",          {5, 10, 15, 20, 25}},
+            {"initial_lr",          {0.00005f}},
+            {"min_lr",              {0.00005f}},
+            {"num_epochs",          {5}},
         };
 }
 std::vector<HConfig> cartesianProduct(const HGrid& grid) {
@@ -66,7 +79,6 @@ public:
         float minRate = 0.1
         )
     {
-    EntropyData entropy_data;
     int globalStep = 0;
         float maxLearningRate = static_cast<float>(optimizer.param_groups().front().options().get_lr());
         int batchesPerEpoch = 0;
@@ -80,15 +92,17 @@ public:
            model->train();
            for (auto &batch : *trainLoader)
                {
-               std::vector<torch::Tensor> xs, ys;
-               xs.reserve(batch.size());
-               ys.reserve(batch.size());
-               for (auto &ex : batch) {
-                   xs.push_back(ex.data);
-                   ys.push_back(ex.target);
-               }
-               auto inputBatch  = torch::stack(xs).to(device);
-               auto targetBatch = torch::stack(ys).to(device);
+               const int n = static_cast<int>(batch.size());
+               // Forward/backward slice cap. On the 3.62 GiB T600 the static
+               // footprint (model + grads + AdamW ~ 2 GiB) plus the autograd
+               // graph of a 2 x 256 x 50257 logits pass only just fits:
+               // batch_size=2 configs squeaked by with ~0.15 GiB spare, while
+               // the same 100 MiB pass OOM'd for effective batch_size=4.
+               // Batches larger than 2 therefore run ONE row per pass — the
+               // logits allocation halves (100 MiB -> 50 MiB) and the whole
+               // activation peak drops ~0.4 GiB. Gradient accumulation still
+               // trains at the grid's effective batch size.
+               const int microBatchSize = (n <= 2) ? n : 1;
                optimizer.zero_grad();
                globalStep += 1;
                if (globalStep <= warmup_iterations) {
@@ -102,8 +116,23 @@ public:
                for (auto & param :optimizer.param_groups()) {
                    param.options().set_lr(lr);
                }
-               auto loss = trainer.cal_loss_batch(inputBatch,targetBatch, model);
-               loss.backward();
+               // Forward/backward per micro-batch; gradients accumulate across
+               // micro-batches. Each micro loss is scaled by size_micro/n so
+               // the accumulated gradient equals the mean over the whole batch.
+               for (int c = 0; c < n; c += microBatchSize) {
+                   const int hi = std::min(n, c + microBatchSize);
+                   std::vector<torch::Tensor> xs, ys;
+                   xs.reserve(hi - c);
+                   ys.reserve(hi - c);
+                   for (int e = c; e < hi; ++e) {
+                       xs.push_back(batch[e].data);
+                       ys.push_back(batch[e].target);
+                   }
+                   auto inputBatch  = torch::stack(xs).to(device);
+                   auto targetBatch = torch::stack(ys).to(device);
+                   auto loss = trainer.cal_loss_batch(inputBatch, targetBatch, model);
+                   (loss * static_cast<float>(hi - c) / static_cast<float>(n)).backward();
+               }
 
                if (globalStep<=warmup_iterations) {
                    torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
@@ -111,8 +140,10 @@ public:
                optimizer.step();
            }
        }
-        trainer.evaluate_model(model,trainLoader,valLoader,device,eval_iter);
-        return trainer.getEntropyData();
+        // Return the final losses directly. entropy_ is only filled by
+        // train_model_simple(), so getEntropyData() would be empty here and
+        // indexing train_losses[-1] would throw out-of-range at the call site.
+        return trainer.evaluate_model(model,trainLoader,valLoader,device,eval_iter);
     }
 
 
@@ -134,6 +165,12 @@ TEST_CASE("HParamTraining")
     Hyperparameter trainer_hyperparameter(trainer);
 
     torch::Device device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU ;
+    // Small-VRAM GPU: expandable segments avoid the "reserved but unallocated"
+    // fragmentation dead-ends (same as PYTORCH_CUDA_ALLOC_CONF=
+    // expandable_segments:True). Must be set before the first CUDA allocation.
+    if (device.is_cuda()) {
+        c10::cuda::CUDACachingAllocator::setAllocatorSettings("expandable_segments:True");
+    }
     float trainRatio  = 0.75;
     int splitIndex = static_cast<int>(trainRatio * trainer.getText().size());
     PreparedData data(std::string(DATASETS_DIR) + "gpt2.tiktoken");
@@ -141,6 +178,7 @@ TEST_CASE("HParamTraining")
     torch::manual_seed(123);
     config cfg;
     auto combos = cartesianProduct(makeGrid());
+    std::cout << "grid search: " << combos.size() << " total configs" << std::endl;
     int currentConfig = 0;
     for (auto &combo : combos)
     {
@@ -148,7 +186,9 @@ TEST_CASE("HParamTraining")
         {
 
             currentConfig += 1;
-           // std::cout << "currentConfig: " << currentConfig << "\t";
+            std::cout << "config " << currentConfig << "/" << combos.size()
+                      << "  num_epochs=" << std::get<int>(combo.at("num_epochs"))
+                      << std::endl;
             cfg.vocab_size  = 50257;
             cfg.context_length = 256;
             cfg.emb_dim = 768;
@@ -166,7 +206,7 @@ TEST_CASE("HParamTraining")
                cfg.context_length,
                cfg.context_length);
 
-            std::cout<<"training starting"<<std::endl;
+
             gpt2mhl model(cfg);
             model->to(device);
             auto optimizer = torch::optim::AdamW(model->parameters(),
@@ -176,39 +216,48 @@ TEST_CASE("HParamTraining")
                     std::get<float>(combo.at("weight_decay"))
                     ));
             std::string startContext = "Nevertheless";
-           auto results = trainer_hyperparameter.train_model(model,
+            EvalResult results = trainer_hyperparameter.train_model(model,
                 trainloader,
                 valLoader,
                 optimizer,
                 device,
                 std::get<int>(combo.at("num_epochs")),
                 std::get<int>(combo.at("num_epochs")),
-                std::get<int>(combo.at("warmup_iterations"))
+                std::get<int>(combo.at("warmup_iterations")),
+                std::get<float>(combo.at("initial_lr")),
+                std::get<float>(combo.at("min_lr"))
                 );
 
-
-
-
-            float trainLoss = results.train_losses[-1].item<float>();
-            float valLoss   = results.val_targets[-1].item<float>();
+            float trainLoss = results.trainLoss;
+            float valLoss   = results.valLoss;
+            std::cout << "config " << currentConfig << "/" << combos.size()
+                      << " done: train_loss=" << trainLoss
+                      << "  val_loss=" << valLoss << std::endl;
 
             if (valLoss < bestValLoss) {
                 bestValLoss     = valLoss;
                 bestTrainLoss   = trainLoss;
                 bestHParams     = combo;           // copies the whole map
                 bestConfigIndex = currentConfig;
+
+                std::cout << "new best (config #" << currentConfig << "):\n";
+                for (const auto &[name, value] : bestHParams) {
+                    std::cout << "  " << name << " = ";
+                    std::visit([](auto v) { std::cout << v; }, value);
+                    std::cout << "\n";
+                }
             }
 
-            for (const auto &[name, value] : bestHParams) {
-                std::cout << "  " << name << " = ";
-                std::visit([](auto v) { std::cout << v; }, value);
-                std::cout << "\n";
-            }
-            std::cout<<"training finished"<<std::endl;
-
-        }catch(...)
+        }
+        catch(const std::exception &e)
         {
-
+            std::cerr << "config #" << currentConfig << " failed: "
+                      << e.what() << std::endl;
+        }
+        // Hand the previous config's freed (cached) CUDA blocks back to the
+        // driver so every config starts from a clean VRAM slate.
+        if (device.is_cuda()) {
+            c10::cuda::CUDACachingAllocator::emptyCache();
         }
     }
     std::cout << "Best config #" << bestConfigIndex

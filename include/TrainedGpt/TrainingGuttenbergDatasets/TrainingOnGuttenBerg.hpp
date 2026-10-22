@@ -34,7 +34,7 @@ private:
 
 public:
     explicit TrainingOnGuttenBerg(std::string_view path);
-   inline auto create_dataloader(std::shared_ptr<tiktoken::Encoding> tokenizer,float training_ratio = 0.0,int batchSize= 0, int maxLength = 0, int stride =0)
+    auto create_dataloader(std::shared_ptr<tiktoken::Encoding> tokenizer,float training_ratio = 0.0,int batchSize= 0, int maxLength = 0, int stride =0)
     {
        // Character-based split (matches the Python `text[:idx]` / `text[idx:]`
        // reference). training_ratio is now actually used.

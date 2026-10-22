@@ -6,7 +6,7 @@ set(TORCH_CUDA_ARCH_LIST "7.5")
 
 
 # Platform-specific setup (toolchain, CUDA, compiler options)
-
+#please set your custom path for Cuda
 if(MSVC)
     set(CUDAToolkit_ROOT "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.8")
     set(CUDA_TOOLKIT_ROOT_DIR "${CUDAToolkit_ROOT}")
@@ -52,6 +52,7 @@ add_definitions(-DMODELS_DIR="${CMAKE_SOURCE_DIR}/datasets")
 add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         include/basics/Text.h
         src/basics/Text.cpp
+        src/basics/CUDAMemoryCleanup.cpp
         include/basics/tokenize.h
         src/basics/tokenize.cpp
         include/basics/SimpleTokenizerV1.h
@@ -121,6 +122,7 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         src/TrainedGpt/TrainingGuttenbergDatasets/TrainingGutenBerg.cpp
         src/TrainedGpt/TrainingGuttenbergDatasets/TrainingSession.cpp
         src/TrainedGpt/HyperParameter/GridSearchHParam/Hyperparameters.cpp
+        include/TrainedGpt/EfficientWeightLoading/GPUStatus.hpp
 )
 
 target_include_directories(LargeLanguageModelcpp PRIVATE
