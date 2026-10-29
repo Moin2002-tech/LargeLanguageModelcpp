@@ -21,6 +21,9 @@ private:
 public:
    explicit gpt2mhlImpl(config &cfg);
     torch::Tensor forward(torch::Tensor x, bool use_Cache = false);
+
+    void load_pretrained(const std::unordered_map<std::string, torch::Tensor> &p);
+
     int64_t getContextLength() const { return pos_emb->options.num_embeddings(); }
     void reset_kv_cache()
     {
@@ -36,6 +39,9 @@ public:
     auto getpos_emb() {
         return pos_emb;
     }
+
+
+
 
 };TORCH_MODULE(gpt2mhl);
 

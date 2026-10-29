@@ -4,7 +4,7 @@
 
 
 #include<Gpt2Untrained/Tests/GroupQueryAttention/include/LayerNormV3.hpp>
-
+#include<TrainedGpt/textGeneration/LoadUtil.hpp>
 
 LayerNormV3Impl::LayerNormV3Impl(int emb_dim) : emb_dim(emb_dim) {
     scale = register_parameter("scale",torch::ones(emb_dim));
@@ -18,4 +18,9 @@ torch::Tensor LayerNormV3Impl::forward(torch::Tensor x)
     auto norm_x = (x -mean) /torch::sqrt(variance + eps);
 
     return (scale * norm_x) + shift;
+}
+
+void LayerNormV3Impl::load_pretrained(const torch::Tensor& g, const torch::Tensor& b) {
+    copy_into(scale, g, "ln.scale");
+    copy_into(shift, b, "ln.shift");
 }

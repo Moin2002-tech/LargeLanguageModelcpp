@@ -15,7 +15,7 @@ inline torch::Tensor generate_with_temperature(gpt2mhl &model,
 {
  for (int64_t i = 0; i < max_new_tokens; ++i)
      {
-     std::cout << "iter " << i << " idx_cond len=" << idx.size(1) << std::endl;
+     //std::cout << "iter " << i << " idx_cond len=" << idx.size(1) << std::endl;
         // idx_cond = idx[:, -context_size:]
         int64_t seq_len = idx.size(1);
         int64_t start_idx = std::max<int64_t>(0, seq_len - context_size);

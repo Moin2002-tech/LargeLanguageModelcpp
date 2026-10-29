@@ -27,6 +27,7 @@ public:
     torch::Tensor forward(torch::Tensor x, bool use_Cache = false);
     void reset_cache();
 
+    void load_pretrained(const std::unordered_map<std::string, torch::Tensor> &p, int b);
 };TORCH_MODULE(TransformBlockV5);
 
 #endif //LARGELANGUAGEMODELCPP_TRANSFORMBLOCKV5_HPP

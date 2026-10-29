@@ -3,7 +3,7 @@
 //
 #include<Gpt2Untrained/Tests/MultiHeadLatent/include/gpt2mhl.hpp>
 
-
+#include<TrainedGpt/textGeneration/LoadUtil.hpp>
 gpt2mhlImpl::gpt2mhlImpl(config &cfg) : cfg(cfg)
 {
     tok_emb = register_module("tok_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(cfg.vocab_size,cfg.emb_dim)));
@@ -51,3 +51,17 @@ torch::Tensor gpt2mhlImpl::forward(torch::Tensor x, bool use_Cache) {
     return logits;
 }
 
+void gpt2mhlImpl::load_pretrained(const std::unordered_map<std::string, torch::Tensor>& p) {
+    TORCH_CHECK(!p.empty(), "empty params map");
+
+    copy_into(pos_emb->weight, p.at("wpe"), "wpe");
+    copy_into(tok_emb->weight, p.at("wte"), "wte");
+    copy_into(outHead->weight, p.at("wte"), "outHead");     // GPT-2 ties these
+
+    finalNorm->load_pretrained(p.at("ln_f__g"), p.at("ln_f__b"));
+
+    for (int b = 0; b < static_cast<int>(trf_block->size()); ++b) {
+        trf_block->ptr<TransformBlockV5Impl>(b)->load_pretrained(p, b);
+    }
+    reset_kv_cache();
+}

@@ -15,7 +15,7 @@ private:
 public:
     explicit LayerNormV3Impl(int emb_dim);
     torch::Tensor forward(torch::Tensor x);
-
+    void load_pretrained(const torch::Tensor& g, const torch::Tensor& b);
 };TORCH_MODULE(LayerNormV3);
 
 #endif //LARGELANGUAGEMODELCPP_LAYERNORMV3_HPP

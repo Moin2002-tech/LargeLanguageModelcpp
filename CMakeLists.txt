@@ -123,6 +123,10 @@ add_executable(LargeLanguageModelcpp src/dataPreparationAndSampling.cpp
         src/TrainedGpt/TrainingGuttenbergDatasets/TrainingSession.cpp
         src/TrainedGpt/HyperParameter/GridSearchHParam/Hyperparameters.cpp
         include/TrainedGpt/EfficientWeightLoading/GPUStatus.hpp
+        include/TrainedGpt/textGeneration/ModelLoaderFactory.h
+        src/TrainedGpt/textGeneration/ModelLoaderFactory.cpp
+        include/TrainedGpt/textGeneration/LoadUtil.hpp
+        src/TrainedGpt/textGeneration/textGenerationGpt2.cpp
 )
 
 target_include_directories(LargeLanguageModelcpp PRIVATE

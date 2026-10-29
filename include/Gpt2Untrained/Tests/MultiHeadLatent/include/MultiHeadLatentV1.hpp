@@ -38,6 +38,8 @@ public:
     torch::Tensor reshape_to_heads(torch::Tensor x, int numHeads, int headDims)
     ;
 
+    void load_pretrained(const torch::Tensor &c_attn_w, const torch::Tensor &c_attn_b, const torch::Tensor &c_proj_w,
+                         const torch::Tensor &c_proj_b);
 };TORCH_MODULE(MultiHeadLatentV1);
 
 

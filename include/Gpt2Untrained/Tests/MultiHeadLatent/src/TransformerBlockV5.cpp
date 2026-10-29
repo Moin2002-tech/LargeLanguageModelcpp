@@ -40,3 +40,18 @@ void TransformBlockV5Impl::reset_cache()
 {
     att->reset_cache();
 }
+
+void TransformBlockV5Impl::load_pretrained(
+const std::unordered_map<std::string,
+torch::Tensor>& p, int b)
+{
+    const std::string h = "h" + std::to_string(b) + "__";
+
+    att->load_pretrained(p.at(h + "attn__c_attn__w"), p.at(h + "attn__c_attn__b"),
+                         p.at(h + "attn__c_proj__w"), p.at(h + "attn__c_proj__b"));
+
+    ff->load_pretrained(p.at(h + "mlp__c_fc__w"),   p.at(h + "mlp__c_fc__b"),
+                     p.at(h + "mlp__c_proj__w"), p.at(h + "mlp__c_proj__b"));
+    layerNorm1->load_pretrained(p.at(h + "ln_1__g"), p.at(h + "ln_1__b"));
+    layerNorm2->load_pretrained(p.at(h + "ln_2__g"), p.at(h + "ln_2__b"));
+}

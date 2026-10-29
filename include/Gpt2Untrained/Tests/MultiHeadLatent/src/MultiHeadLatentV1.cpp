@@ -6,7 +6,7 @@
 #include<Gpt2Untrained/Tests/MultiHeadLatent/include/MultiHeadLatentV1.hpp>
 #include <limits>
 #include <cmath>
-
+#include<TrainedGpt/textGeneration/LoadUtil.hpp>
 
 MultiHeadLatentV1Impl::MultiHeadLatentV1Impl(int d_in,
     int d_out,
@@ -119,4 +119,46 @@ torch::Tensor MultiHeadLatentV1Impl::forward(torch::Tensor x, bool use_cache)
 
     return context_vec;
 
+}
+
+void MultiHeadLatentV1Impl::load_pretrained(const torch::Tensor& c_attn_w,
+                                             const torch::Tensor& c_attn_b,
+                                             const torch::Tensor& c_proj_w,
+                                             const torch::Tensor& c_proj_b) {
+    torch::NoGradGuard ng;
+    const int64_t D = c_attn_w.size(0);                 // 768
+    auto qkv_w = c_attn_w.chunk(3, -1);                 // each [D, D], layout x @ W
+    auto qkv_b = c_attn_b.chunk(3, -1);
+
+    // Query: direct
+    copy_into(W_query->weight, qkv_w[0].t().contiguous(), "W_query.w");
+    if (W_query->bias.defined()) copy_into(W_query->bias, qkv_b[0], "W_query.b");
+
+    const int64_t r = W_DKV->weight.size(0);            // latent dim
+
+    torch::Tensor down;                                 // [D, r]  (x @ down = latent)
+    torch::Tensor up;                                   // [r, 2D] (latent @ up = [K | V])
+
+    if (r == D) {
+        // Exact fit: identity down-projection, up = original Wk, Wv
+        down = torch::eye(D, c_attn_w.options());
+        up   = torch::cat({qkv_w[1], qkv_w[2]}, 1);
+    } else {
+        // Joint truncated SVD of [Wk | Wv]
+        auto kv = torch::cat({qkv_w[1], qkv_w[2]}, 1).to(torch::kFloat64);   // [D, 2D]
+        auto [U, S, Vh] = torch::linalg_svd(kv, /*full_matrices=*/false);
+        auto s_half = S.slice(0, 0, r).sqrt();
+        down = (U.slice(1, 0, r) * s_half).to(torch::kFloat32);              // [D, r]
+        up   = (s_half.unsqueeze(1) * Vh.slice(0, 0, r)).to(torch::kFloat32); // [r, 2D]
+    }
+
+    copy_into(W_DKV->weight, down.t().contiguous(), "W_DKV.w");
+    if (W_DKV->bias.defined()) W_DKV->bias.zero_();
+    copy_into(W_UK->weight, up.slice(1, 0, D).t().contiguous(), "W_UK.w");
+    copy_into(W_UV->weight, up.slice(1, D, 2 * D).t().contiguous(), "W_UV.w");
+    if (W_UK->bias.defined()) copy_into(W_UK->bias, qkv_b[1], "W_UK.b");
+    if (W_UV->bias.defined()) copy_into(W_UV->bias, qkv_b[2], "W_UV.b");
+
+    copy_into(outProj->weight, c_proj_w.t().contiguous(), "outProj.w");
+    copy_into(outProj->bias, c_proj_b, "outProj.b");
 }
