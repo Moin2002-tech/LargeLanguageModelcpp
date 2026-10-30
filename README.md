@@ -196,8 +196,7 @@ LibTorch is **excluded from git** (see `.gitignore`) because it's several gigaby
 
 # 2. Download and extract into external/
 cd external/
-wget https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.11.0%2Bcu121.zip
-unzip libtorch-cxx11-abi-shared-with-deps-2.1.0+cu121.zip
+
 # Now external/libtorch/ exists
 
 # 3. Verify the directory structure:
@@ -217,7 +216,68 @@ A Python script is provided to download classic literature from Project Gutenber
 cd datasets/guttenberg/gutenberg
 python3 download_small_batch.py -s 100
 ```
+# datasets
+```
+1. Small Model (124M)
+checkpoint
 
+encoder.json
+
+hparams.json
+
+model.ckpt.data-00000-of-00001
+
+model.ckpt.index
+
+model.ckpt.meta
+
+vocab.bpe
+
+2. Medium Model (355M)
+checkpoint
+
+encoder.json
+
+hparams.json
+
+model.ckpt.data-00000-of-00001
+
+model.ckpt.index
+
+model.ckpt.meta
+
+vocab.bpe
+
+3. Large Model (774M)
+checkpoint
+
+encoder.json
+
+hparams.json
+
+model.ckpt.data-00000-of-00001
+
+model.ckpt.index
+
+model.ckpt.meta
+
+vocab.bpe
+
+4. Extra Large Model (1558M)
+checkpoint
+
+encoder.json
+
+hparams.json
+
+model.ckpt.data-00000-of-00001
+
+model.ckpt.index
+
+model.ckpt.meta
+
+vocab.bpe
+```
 This downloads approximately 100MB of public domain books including:
 - Classic novels (War and Peace, Pride and Prejudice, Moby Dick, etc.)
 - Historical documents (King James Bible, Communist Manifesto)
