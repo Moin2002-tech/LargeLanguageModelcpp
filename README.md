@@ -216,68 +216,7 @@ A Python script is provided to download classic literature from Project Gutenber
 cd datasets/guttenberg/gutenberg
 python3 download_small_batch.py -s 100
 ```
-# datasets
-```
-1. Small Model (124M)
-checkpoint
 
-encoder.json
-
-hparams.json
-
-model.ckpt.data-00000-of-00001
-
-model.ckpt.index
-
-model.ckpt.meta
-
-vocab.bpe
-
-2. Medium Model (355M)
-checkpoint
-
-encoder.json
-
-hparams.json
-
-model.ckpt.data-00000-of-00001
-
-model.ckpt.index
-
-model.ckpt.meta
-
-vocab.bpe
-
-3. Large Model (774M)
-checkpoint
-
-encoder.json
-
-hparams.json
-
-model.ckpt.data-00000-of-00001
-
-model.ckpt.index
-
-model.ckpt.meta
-
-vocab.bpe
-
-4. Extra Large Model (1558M)
-checkpoint
-
-encoder.json
-
-hparams.json
-
-model.ckpt.data-00000-of-00001
-
-model.ckpt.index
-
-model.ckpt.meta
-
-vocab.bpe
-```
 This downloads approximately 100MB of public domain books including:
 - Classic novels (War and Peace, Pride and Prejudice, Moby Dick, etc.)
 - Historical documents (King James Bible, Communist Manifesto)
@@ -303,6 +242,7 @@ To clean Gutenberg headers and tokenize:
 cd datasets/guttenberg/gutenberg
 python3 process_data.py
 ```
+
 
 This creates:
 - `data/text/` - books with headers stripped
